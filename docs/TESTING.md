@@ -90,3 +90,19 @@ this after any change to `icao24_resolver.py`, `aeroapi_client.py`, or `opensky_
 Not chasing a specific percentage, but: every function in `services/` should have at least one unit test
 covering its main path and its main failure/edge path; every router should have at least one integration test
 per status code it can return; the core workflow must have e2e coverage before it's considered "done."
+
+## CI
+
+`.github/workflows/ci.yml` runs on every pull request (and on push to `main`), as three jobs mirroring the
+layers above:
+
+| Job | Runs |
+|---|---|
+| `backend` | `ruff check`, `alembic upgrade head`, `pytest` (unit + integration) against a real Postgres service container |
+| `frontend` | typecheck, lint, Vitest unit tests, production build |
+| `e2e` | Playwright, backend in `FIXTURE_MODE=true` — no real AeroAPI/OpenSky credentials needed in CI at all |
+
+The Postgres service container in CI uses the same credentials as `docker-compose.yml`/the app's default
+`DATABASE_URL`, so no extra secrets or environment configuration were needed to wire this up. `e2e` runs after
+`backend`/`frontend` pass, since it's the slowest job (Playwright browser install + both dev servers) and
+isn't worth running against a build that's already broken elsewhere.

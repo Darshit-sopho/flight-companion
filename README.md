@@ -1,5 +1,7 @@
 # Flight Companion
 
+[![CI](https://github.com/Darshit-sopho/flight-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/Darshit-sopho/flight-companion/actions/workflows/ci.yml)
+
 A one-stop flight companion for travelers (and the people waiting for them): look up a flight and see its recent
 on-time history, live position while it's in the air, and the trip details that actually matter — delays, gate,
 terminal, and airport info. No account needed: search a flight number and date, get a shareable link, done. That

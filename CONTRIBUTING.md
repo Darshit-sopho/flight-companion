@@ -29,6 +29,9 @@ cd frontend && npm run typecheck && npm run lint && npm test
 cd e2e && npx playwright test
 ```
 
+CI (`.github/workflows/ci.yml`) runs all three of these automatically on every PR, so this is about getting
+fast feedback locally rather than being the only line of defense — see [`docs/TESTING.md#ci`](docs/TESTING.md#ci).
+
 If you change a backend response shape, update:
 1. The Pydantic schema in `backend/app/schemas/`.
 2. `docs/API.md`.
