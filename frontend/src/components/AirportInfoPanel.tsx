@@ -24,6 +24,10 @@ export function AirportInfoPanel({ label, airport, loading }: Props) {
               {new Date(airport.local_time).toLocaleTimeString(undefined, {
                 hour: "2-digit",
                 minute: "2-digit",
+                // Without an explicit timeZone, this formats in the VIEWER's browser timezone, not
+                // the airport's — silently collapsing two different airports' times to the same
+                // displayed value. The backend already resolves the right IANA zone per airport.
+                timeZone: airport.timezone ?? undefined,
               })}
             </p>
           )}
