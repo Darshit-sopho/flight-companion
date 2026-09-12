@@ -61,6 +61,11 @@ npm run dev
 
 Open http://localhost:5173.
 
+**After that initial setup**, on Windows you can just double-click `dev-start.bat` — it starts Postgres,
+the backend, and the frontend (each in its own terminal window) and opens the app in your browser once
+both are up. `dev-stop.bat` stops the Postgres container (close the backend/frontend windows, or Ctrl+C in
+each, to stop those). These are a local development convenience only — not used by CI or in production.
+
 For subproject-specific details see [`backend/README.md`](backend/README.md) and
 [`frontend/README.md`](frontend/README.md).
 
