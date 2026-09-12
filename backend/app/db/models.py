@@ -77,6 +77,11 @@ class FlightSnapshot(Base):
     flight_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     ident: Mapped[str] = mapped_column(String(16), index=True)
     operator_icao: Mapped[str | None] = mapped_column(String(8))
+    # The operating carrier's full ICAO flight ident (AeroAPI's `ident_icao`, e.g. "RPA3513"), distinct
+    # from `ident` (what the user searched, e.g. the marketing/codeshare number "UA3513"). This is what
+    # actually gets broadcast over ADS-B as the callsign, so icao24_resolver's callsign fallback must
+    # try this too, not just `ident` — see docs/ARCHITECTURE.md#aeroapi--opensky-linking.
+    operating_ident_icao: Mapped[str | None] = mapped_column(String(16))
     scheduled_date: Mapped[date] = mapped_column(Date)
 
     origin_code: Mapped[str | None] = mapped_column(String(8))

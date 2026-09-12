@@ -54,6 +54,8 @@ def upsert_snapshot_from_aeroapi(
     actual_or_estimated_departure = parse_dt(raw.get("actual_out")) or parse_dt(raw.get("estimated_out"))
 
     snapshot.ident = ident.upper()
+    snapshot.operator_icao = raw.get("operator_icao")
+    snapshot.operating_ident_icao = raw.get("ident_icao")
     snapshot.scheduled_date = scheduled_date
     snapshot.origin_code = (raw.get("origin") or {}).get("code")
     snapshot.destination_code = (raw.get("destination") or {}).get("code")

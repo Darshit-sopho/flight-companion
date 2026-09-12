@@ -130,7 +130,7 @@ class FixtureOpenSkyClient:
             "geo_altitude": 10363.2,
         }
 
-    def find_state_by_callsign(self, callsign: str) -> dict | None:
+    def find_state_by_callsigns(self, callsigns: list[str]) -> dict | None:
         return self.get_states("a1b2c3")
 
     def close(self) -> None:

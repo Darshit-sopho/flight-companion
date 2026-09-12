@@ -10,17 +10,6 @@ from app.db.models import FlightStatus
 
 _ON_TIME_THRESHOLD_MINUTES = 15
 
-_STATUS_MAP = {
-    "scheduled": FlightStatus.SCHEDULED,
-    "en route": FlightStatus.ACTIVE,
-    "active": FlightStatus.ACTIVE,
-    "arrived": FlightStatus.LANDED,
-    "landed": FlightStatus.LANDED,
-    "cancelled": FlightStatus.CANCELLED,
-    "canceled": FlightStatus.CANCELLED,
-    "diverted": FlightStatus.DIVERTED,
-}
-
 
 def parse_dt(value: str | None) -> datetime | None:
     if not value:
@@ -29,9 +18,22 @@ def parse_dt(value: str | None) -> datetime | None:
 
 
 def map_status(raw_status: str | None) -> FlightStatus:
+    """AeroAPI's `status` field is a free-text, sometimes-compound string (e.g. "En Route / On Time",
+    "Landed / Gate Arrival", "Scheduled"), not a fixed enum — so match on keywords/substrings rather
+    than exact values. Order matters: check terminal/exceptional states before "en route"/"landed".
+    """
     if not raw_status:
         return FlightStatus.SCHEDULED
-    return _STATUS_MAP.get(raw_status.strip().lower(), FlightStatus.SCHEDULED)
+    normalized = raw_status.strip().lower()
+    if "cancel" in normalized:
+        return FlightStatus.CANCELLED
+    if "divert" in normalized:
+        return FlightStatus.DIVERTED
+    if "landed" in normalized or "arrived" in normalized:
+        return FlightStatus.LANDED
+    if "en route" in normalized or "active" in normalized or "airborne" in normalized:
+        return FlightStatus.ACTIVE
+    return FlightStatus.SCHEDULED
 
 
 def compute_delay_minutes(scheduled: datetime | None, actual_or_estimated: datetime | None) -> int | None:

@@ -20,12 +20,12 @@ def test_resolves_via_registration_lookup_without_calling_opensky(sqlite_session
     assert result.icao24 == "a1b2c3"
     assert result.method == ResolutionMethod.REGISTRATION_LOOKUP
     assert result.confidence == ResolutionConfidence.HIGH
-    opensky.find_state_by_callsign.assert_not_called()
+    opensky.find_state_by_callsigns.assert_not_called()
 
 
 def test_falls_back_to_callsign_when_registration_not_in_registry(sqlite_session):
     opensky = MagicMock()
-    opensky.find_state_by_callsign.return_value = {"icao24": "d4e5f6", "callsign": "UAL123"}
+    opensky.find_state_by_callsigns.return_value = {"icao24": "d4e5f6", "callsign": "UAL123"}
 
     result = resolve_icao24(
         sqlite_session, registration="N99999", candidate_idents=["UAL123"], opensky_client=opensky
@@ -38,7 +38,7 @@ def test_falls_back_to_callsign_when_registration_not_in_registry(sqlite_session
 
 def test_falls_back_to_callsign_when_registration_missing(sqlite_session):
     opensky = MagicMock()
-    opensky.find_state_by_callsign.return_value = {"icao24": "112233"}
+    opensky.find_state_by_callsigns.return_value = {"icao24": "112233"}
 
     result = resolve_icao24(
         sqlite_session, registration=None, candidate_idents=["UAL123"], opensky_client=opensky
@@ -48,25 +48,29 @@ def test_falls_back_to_callsign_when_registration_missing(sqlite_session):
     assert result.method == ResolutionMethod.CALLSIGN_FALLBACK
 
 
-def test_tries_every_candidate_ident_for_codeshares(sqlite_session):
+def test_passes_all_candidate_idents_in_a_single_opensky_sweep_for_codeshares(sqlite_session):
+    """A codeshare's marketing ident (what the user searched, e.g. "UA3513") often differs from the
+    operating carrier's broadcast callsign (e.g. "RPA3513") — both must be checked, but in ONE
+    /states/all sweep, not one fetch per candidate. See OpenSkyClient.find_state_by_callsigns.
+    """
     opensky = MagicMock()
-    opensky.find_state_by_callsign.side_effect = [None, {"icao24": "abcdef"}]
+    opensky.find_state_by_callsigns.return_value = {"icao24": "abcdef"}
 
     result = resolve_icao24(
         sqlite_session,
         registration=None,
-        candidate_idents=["UAL123", "SKW456"],
+        candidate_idents=["UA3513", "RPA3513"],
         opensky_client=opensky,
     )
 
     assert result.icao24 == "abcdef"
     assert result.method == ResolutionMethod.CALLSIGN_FALLBACK
-    assert opensky.find_state_by_callsign.call_count == 2
+    opensky.find_state_by_callsigns.assert_called_once_with(["UA3513", "RPA3513"])
 
 
 def test_returns_unresolved_when_nothing_matches(sqlite_session):
     opensky = MagicMock()
-    opensky.find_state_by_callsign.return_value = None
+    opensky.find_state_by_callsigns.return_value = None
 
     result = resolve_icao24(
         sqlite_session,
@@ -78,14 +82,3 @@ def test_returns_unresolved_when_nothing_matches(sqlite_session):
     assert result.icao24 is None
     assert result.method == ResolutionMethod.UNRESOLVED
     assert result.confidence == ResolutionConfidence.NONE
-
-
-def test_blank_candidate_idents_are_skipped_without_calling_opensky(sqlite_session):
-    opensky = MagicMock()
-
-    result = resolve_icao24(
-        sqlite_session, registration=None, candidate_idents=["", "   "], opensky_client=opensky
-    )
-
-    assert result.method == ResolutionMethod.UNRESOLVED
-    opensky.find_state_by_callsign.assert_not_called()

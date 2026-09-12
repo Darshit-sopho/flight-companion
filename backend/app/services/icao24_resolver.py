@@ -53,17 +53,13 @@ def resolve_icao24(
                 confidence=ResolutionConfidence.HIGH,
             )
 
-    for ident in candidate_idents:
-        normalized = (ident or "").strip().upper()
-        if not normalized:
-            continue
-        match = opensky_client.find_state_by_callsign(normalized)
-        if match:
-            return ResolutionResult(
-                icao24=match["icao24"],
-                method=ResolutionMethod.CALLSIGN_FALLBACK,
-                confidence=ResolutionConfidence.LOW,
-            )
+    match = opensky_client.find_state_by_callsigns(candidate_idents)
+    if match:
+        return ResolutionResult(
+            icao24=match["icao24"],
+            method=ResolutionMethod.CALLSIGN_FALLBACK,
+            confidence=ResolutionConfidence.LOW,
+        )
 
     return ResolutionResult(
         icao24=None, method=ResolutionMethod.UNRESOLVED, confidence=ResolutionConfidence.NONE

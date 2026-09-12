@@ -35,10 +35,16 @@ def get_live_track(db: Session, opensky: OpenSkyClient, flight_id: str) -> dict:
         db.flush()
 
     if tracked.resolved_icao24 is None:
+        # Codeshares broadcast the OPERATING carrier's ICAO ident over ADS-B (e.g. "RPA3513"), not
+        # necessarily the marketing ident the user searched (e.g. "UA3513") — try both. See
+        # docs/ARCHITECTURE.md#aeroapi--opensky-linking.
+        candidate_idents = [snapshot.ident]
+        if snapshot.operating_ident_icao and snapshot.operating_ident_icao != snapshot.ident:
+            candidate_idents.append(snapshot.operating_ident_icao)
         result = resolve_icao24(
             db,
             registration=snapshot.registration,
-            candidate_idents=[snapshot.ident],
+            candidate_idents=candidate_idents,
             opensky_client=opensky,
         )
         tracked.resolved_icao24 = result.icao24

@@ -9,6 +9,9 @@ consumes the dict this returns, not the raw AeroAPI response.
 
 from __future__ import annotations
 
+from datetime import date as date_cls
+from datetime import timedelta
+
 import httpx
 
 from app.config import get_settings
@@ -38,9 +41,17 @@ class AeroAPIClient:
         )
 
     def get_flight(self, ident: str, date: str) -> dict:
-        """Fetch the flight-instance data for a specific ident on a specific (local) date."""
+        """Fetch the flight-instance data for a specific ident on a specific (local) date.
+
+        AeroAPI requires `end` to be strictly later than `start` (a same-day range is rejected with
+        400 INVALID_ARGUMENT), so we query the full day: [date 00:00, date+1 00:00).
+        """
         aeroapi_budget.record_call()
-        response = self._client.get(f"/flights/{ident}", params={"start": date, "end": date})
+        start_date = date_cls.fromisoformat(date)
+        end_date = start_date + timedelta(days=1)
+        response = self._client.get(
+            f"/flights/{ident}", params={"start": start_date.isoformat(), "end": end_date.isoformat()}
+        )
         if response.status_code == 404:
             raise AeroAPINotFoundError(f"No flight found for {ident} on {date}")
         response.raise_for_status()

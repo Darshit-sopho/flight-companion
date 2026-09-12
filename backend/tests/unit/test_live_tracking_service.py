@@ -72,13 +72,54 @@ def test_tracking_resolves_icao24_and_persists_position(sqlite_session):
     opensky.get_states.assert_called_once_with("a1b2c3")
 
 
+def test_codeshare_tries_both_marketing_and_operating_idents(sqlite_session):
+    """Regression test for a real bug: a codeshare (e.g. searched as "UA3513", broadcasting ADS-B as
+    the operating carrier's "RPA3513") must have both idents checked, or the callsign fallback never
+    matches even though OpenSky has live data for the aircraft. See docs/ARCHITECTURE.md.
+    """
+    snapshot = _make_snapshot(
+        ident="UA3513", registration="N-UNKNOWN", operating_ident_icao="RPA3513"
+    )
+    sqlite_session.add(snapshot)
+    sqlite_session.commit()
+
+    opensky = MagicMock()
+    opensky.find_state_by_callsigns.return_value = {
+        "icao24": "aa3646",
+        "latitude": 42.8672,
+        "longitude": -70.2612,
+        "baro_altitude": 10668,
+        "velocity": 239.15,
+        "true_track": 55.69,
+        "on_ground": False,
+    }
+
+    result = live_tracking_service.get_live_track(sqlite_session, opensky, snapshot.flight_id)
+
+    assert result["state"] == "tracking"
+    opensky.find_state_by_callsigns.assert_called_once_with(["UA3513", "RPA3513"])
+
+
+def test_does_not_duplicate_ident_when_operating_ident_matches_searched_ident(sqlite_session):
+    snapshot = _make_snapshot(registration="N-UNKNOWN", operating_ident_icao="UAL123")
+    sqlite_session.add(snapshot)
+    sqlite_session.commit()
+
+    opensky = MagicMock()
+    opensky.find_state_by_callsigns.return_value = None
+
+    live_tracking_service.get_live_track(sqlite_session, opensky, snapshot.flight_id)
+
+    opensky.find_state_by_callsigns.assert_called_once_with(["UAL123"])
+
+
 def test_unavailable_when_icao24_cannot_be_resolved(sqlite_session):
     snapshot = _make_snapshot(registration="N-UNKNOWN")
     sqlite_session.add(snapshot)
     sqlite_session.commit()
 
     opensky = MagicMock()
-    opensky.find_state_by_callsign.return_value = None
+    opensky.find_state_by_callsigns.return_value = None
 
     result = live_tracking_service.get_live_track(sqlite_session, opensky, snapshot.flight_id)
 

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 
 import {
   api,
+  ApiError,
   type AirportResponse,
   type FlightHistoryResponse,
   type Position,
@@ -92,14 +93,24 @@ export function FlightDetailPage() {
   const { ident = "", date = "" } = useParams();
   const [flightId, setFlightId] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     setFlightId(null);
     setNotFound(false);
+    setSearchError(null);
     api
       .searchFlight(ident, date)
       .then((result) => setFlightId(result.flight_id))
-      .catch(() => setNotFound(true));
+      .catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 404) {
+          setNotFound(true);
+        } else {
+          // A non-404 failure (backend error, network issue, etc.) is not the same as "no such
+          // flight" — surface it distinctly so it isn't mistaken for a bad flight number/date.
+          setSearchError(err instanceof Error ? err.message : "Something went wrong.");
+        }
+      });
   }, [ident, date]);
 
   return (
@@ -112,8 +123,13 @@ export function FlightDetailPage() {
           No flight found for {ident} on {date}. Double-check the flight number and date.
         </p>
       )}
-      {!notFound && flightId && <FlightDetailContent flightId={flightId} />}
-      {!notFound && !flightId && <p>Looking up flight…</p>}
+      {searchError && (
+        <p role="alert" className="error-text">
+          Couldn't look up this flight: {searchError}
+        </p>
+      )}
+      {!notFound && !searchError && flightId && <FlightDetailContent flightId={flightId} />}
+      {!notFound && !searchError && !flightId && <p>Looking up flight…</p>}
     </main>
   );
 }

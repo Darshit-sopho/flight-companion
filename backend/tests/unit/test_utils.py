@@ -25,6 +25,20 @@ def test_map_status_known_values():
     assert map_status("Landed") == FlightStatus.LANDED
 
 
+def test_map_status_handles_real_aeroapi_compound_strings():
+    # AeroAPI's actual `status` field is free-text and often compound, e.g. "En Route / On Time" —
+    # this is the exact string a real flight returned during manual testing.
+    assert map_status("En Route / On Time") == FlightStatus.ACTIVE
+    assert map_status("En Route / Delayed") == FlightStatus.ACTIVE
+    assert map_status("Landed / Gate Arrival") == FlightStatus.LANDED
+    assert map_status("Landed / Taxiing") == FlightStatus.LANDED
+
+
+def test_map_status_prioritizes_cancelled_and_diverted_over_other_keywords():
+    assert map_status("Cancelled / En Route") == FlightStatus.CANCELLED
+    assert map_status("Diverted / Landed") == FlightStatus.DIVERTED
+
+
 def test_map_status_unknown_or_missing_defaults_to_scheduled():
     assert map_status("something weird") == FlightStatus.SCHEDULED
     assert map_status(None) == FlightStatus.SCHEDULED

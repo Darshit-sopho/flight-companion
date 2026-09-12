@@ -89,19 +89,22 @@ class OpenSkyClient:
         states = (response.json() or {}).get("states") or []
         return parse_state_vector(states[0]) if states else None
 
-    def find_state_by_callsign(self, callsign: str) -> dict | None:
+    def find_state_by_callsigns(self, callsigns: list[str]) -> dict | None:
         """Fallback lookup used by icao24_resolver when registration-based resolution fails.
 
-        Scans all current state vectors for a callsign match. Noisier than the icao24 lookup (callsigns
+        Scans all current state vectors ONCE for a match against any of the given candidate callsigns
+        (e.g. both a codeshare's marketing and operating idents) — deliberately not one `/states/all`
+        fetch per candidate, since that's a full-table sweep each time and candidates are checked
+        against the exact same snapshot of live states anyway. Noisier than the icao24 lookup (callsigns
         aren't always populated), so callers should treat a match here as lower-confidence.
         """
-        normalized = callsign.strip().upper()
-        if not normalized:
+        normalized_candidates = {c.strip().upper() for c in callsigns if c and c.strip()}
+        if not normalized_candidates:
             return None
         response = self._client.get(STATES_URL, headers=self._auth_headers())
         response.raise_for_status()
         for state in (response.json() or {}).get("states") or []:
-            if (state[_CALLSIGN] or "").strip().upper() == normalized:
+            if (state[_CALLSIGN] or "").strip().upper() in normalized_candidates:
                 return parse_state_vector(state)
         return None
 
