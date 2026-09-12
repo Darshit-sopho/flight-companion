@@ -1,5 +1,5 @@
 # Stops the Postgres container started by dev-start.ps1. The backend/frontend run in their own
-# visible terminal windows (not hidden background processes) — close those windows or Ctrl+C in
+# visible terminal windows (not hidden background processes) - close those windows or Ctrl+C in
 # each to stop them.
 
 $ErrorActionPreference = "Stop"
