@@ -14,6 +14,7 @@ vi.mock("react-leaflet", () => ({
 
 import type { TrackResponse } from "../../src/api/client";
 import { LiveFlightMap } from "../../src/components/LiveFlightMap";
+import { planeIcon } from "../../src/components/planeIcon";
 
 const trackingResponse: TrackResponse = {
   state: "tracking",
@@ -66,5 +67,22 @@ describe("LiveFlightMap", () => {
     };
     render(<LiveFlightMap track={onGround} trail={[]} />);
     expect(screen.getByText("On ground")).toBeInTheDocument();
+  });
+});
+
+describe("planeIcon", () => {
+  // Regression test: an emoji-based icon rotated fine in the DOM but looked visually wrong because
+  // its default artwork orientation isn't guaranteed to point north — a plain CSS-rotation check
+  // alone wouldn't have caught that class of bug, but this at least locks in the rotation math on the
+  // SVG icon that replaced it (nose-up at 0deg, clockwise from there — same convention as OpenSky's
+  // true_track).
+  it("rotates the icon by the given heading, clockwise from north", () => {
+    const icon = planeIcon(92);
+    expect(icon.options.html).toContain("rotate(92deg)");
+  });
+
+  it("defaults to no rotation when heading is unknown", () => {
+    const icon = planeIcon(null);
+    expect(icon.options.html).toContain("rotate(0deg)");
   });
 });

@@ -1,24 +1,14 @@
 import "leaflet/dist/leaflet.css";
 
-import L from "leaflet";
 import { useEffect } from "react";
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet";
 
 import type { Position, TrackResponse } from "../api/client";
+import { planeIcon } from "./planeIcon";
 
 interface Props {
   track: TrackResponse | null;
   trail: Position[];
-}
-
-function planeIcon(headingDeg: number | null): L.DivIcon {
-  const rotation = headingDeg ?? 0;
-  return L.divIcon({
-    html: `<div style="transform: rotate(${rotation}deg); font-size: 24px; line-height: 24px;">&#9992;&#65039;</div>`,
-    className: "plane-icon",
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-  });
 }
 
 function Recenter({ lat, lon }: { lat: number; lon: number }) {
