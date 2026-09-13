@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { FlightStatusResponse } from "../../src/api/client";
+import type { AirportWeatherResponse, FlightStatusResponse } from "../../src/api/client";
 import { StatusTimelineCard } from "../../src/components/StatusTimelineCard";
 
 const baseStatus: FlightStatusResponse = {
@@ -234,6 +234,53 @@ describe("StatusTimelineCard", () => {
       };
       render(<StatusTimelineCard status={status} />);
       expect(screen.queryByText(/^,|,$/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("weather glyphs (SC-D2)", () => {
+    const weather: AirportWeatherResponse = {
+      code: "SFO",
+      now: { bucket: "partly_cloudy", temp_f: 68.4, at: "2026-09-12T14:00:00Z" },
+      outlook: { bucket: "rain", temp_f: 55.0, at: "2026-09-12T20:00:00Z" },
+    };
+
+    it("shows both Now and a leg-specific 'At departure'/'At arrival' glyph, as visible text", () => {
+      render(
+        <StatusTimelineCard status={baseStatus} originWeather={weather} destinationWeather={weather} />,
+      );
+      // The label must be visible on the card, not only in a hover tooltip -- a bare icon+temp pair
+      // gives no clue which glyph is which.
+      expect(screen.getAllByText("Now").length).toBe(2);
+      expect(screen.getByText("At departure")).toBeInTheDocument();
+      expect(screen.getByText("At arrival")).toBeInTheDocument();
+      expect(screen.getAllByTitle("Now: partly cloudy, 68°F").length).toBe(2);
+      expect(screen.getByTitle("At departure: rain, 55°F")).toBeInTheDocument();
+      expect(screen.getByTitle("At arrival: rain, 55°F")).toBeInTheDocument();
+    });
+
+    it("omits the weather row entirely when no weather data is available for a leg", () => {
+      render(<StatusTimelineCard status={baseStatus} />);
+      expect(screen.queryByText("Weather")).not.toBeInTheDocument();
+    });
+
+    it("shows only the Now glyph when there is no outlook match", () => {
+      render(
+        <StatusTimelineCard status={baseStatus} originWeather={{ ...weather, outlook: null }} />,
+      );
+      expect(screen.getByTitle(/^Now:/)).toBeInTheDocument();
+      expect(screen.queryByText("At departure")).not.toBeInTheDocument();
+    });
+
+    it("shows the destination leg's own weather independently of the origin's", () => {
+      render(
+        <StatusTimelineCard
+          status={baseStatus}
+          originWeather={weather}
+          destinationWeather={{ ...weather, now: { ...weather.now, temp_f: 40.0 } }}
+        />,
+      );
+      expect(screen.getByTitle("Now: partly cloudy, 68°F")).toBeInTheDocument();
+      expect(screen.getByTitle("Now: partly cloudy, 40°F")).toBeInTheDocument();
     });
   });
 

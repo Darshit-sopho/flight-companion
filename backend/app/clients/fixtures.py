@@ -229,6 +229,33 @@ class FixtureAeroAPIClient:
         pass
 
 
+class FixtureOpenMeteoClient:
+    """Returns one fixed, deterministic forecast regardless of lat/lon input -- fixture mode doesn't need
+    per-airport variation, just a stable shape to render against (see StatusTimelineCard's weather row).
+    """
+
+    def get_forecast(self, lat: float, lon: float) -> dict:
+        today = date.today()
+        return {
+            "current": {"time": f"{today.isoformat()}T12:00", "temp_f": 68.0, "weather_code": 2},
+            "hourly": [
+                {"time": f"{today.isoformat()}T{hour:02d}:00", "temp_f": 60.0 + hour, "weather_code": 2}
+                for hour in range(24)
+            ]
+            + [
+                {
+                    "time": f"{(today + timedelta(days=1)).isoformat()}T{hour:02d}:00",
+                    "temp_f": 60.0 + hour,
+                    "weather_code": 2,
+                }
+                for hour in range(24)
+            ],
+        }
+
+    def close(self) -> None:
+        pass
+
+
 class FixtureOpenSkyClient:
     """Simulates gentle eastward movement each time get_states is polled, so e2e tests can assert the
     map position actually changes across polling cycles.

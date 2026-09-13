@@ -5,6 +5,7 @@ import {
   api,
   ApiError,
   type AirportResponse,
+  type AirportWeatherResponse,
   type FlightHistoryResponse,
   type Position,
 } from "../api/client";
@@ -25,6 +26,9 @@ function FlightDetailContent({ flightId }: { flightId: string }) {
   const [trail, setTrail] = useState<Position[]>([]);
   const [origin, setOrigin] = useState<AirportResponse | null>(null);
   const [destination, setDestination] = useState<AirportResponse | null>(null);
+  const [originWeather, setOriginWeather] = useState<AirportWeatherResponse | null>(null);
+  const [destinationWeather, setDestinationWeather] = useState<AirportWeatherResponse | null>(null);
+  const [divertedWeather, setDivertedWeather] = useState<AirportWeatherResponse | null>(null);
 
   useEffect(() => {
     api
@@ -48,6 +52,37 @@ function FlightDetailContent({ flightId }: { flightId: string }) {
       .then(setDestination)
       .catch(() => setDestination(null));
   }, [status?.destination.code]);
+
+  // SC-D2: each leg's weather is keyed on the airport code AND that leg's current estimated/scheduled
+  // time, so a schedule revision on the next poll re-picks a different cached forecast hour (a cheap
+  // DB-cache hit server-side, not a new Open-Meteo call) rather than showing a stale "outlook."
+  const originAt = status?.estimated_departure ?? status?.scheduled_departure ?? undefined;
+  useEffect(() => {
+    if (!status?.origin.code) return;
+    api
+      .getAirportWeather(status.origin.code, originAt)
+      .then(setOriginWeather)
+      .catch(() => setOriginWeather(null));
+  }, [status?.origin.code, originAt]);
+
+  const destinationAt = status?.estimated_arrival ?? status?.scheduled_arrival ?? undefined;
+  useEffect(() => {
+    if (!status?.destination.code) return;
+    api
+      .getAirportWeather(status.destination.code, destinationAt)
+      .then(setDestinationWeather)
+      .catch(() => setDestinationWeather(null));
+  }, [status?.destination.code, destinationAt]);
+
+  const divertedCode = status?.diverted?.airport.code;
+  const divertedAt = status?.diverted?.estimated_arrival ?? status?.diverted?.scheduled_arrival ?? undefined;
+  useEffect(() => {
+    if (!divertedCode) return;
+    api
+      .getAirportWeather(divertedCode, divertedAt)
+      .then(setDivertedWeather)
+      .catch(() => setDivertedWeather(null));
+  }, [divertedCode, divertedAt]);
 
   useEffect(() => {
     if (track?.state === "tracking" && track.position) {
@@ -73,6 +108,9 @@ function FlightDetailContent({ flightId }: { flightId: string }) {
         status={status}
         originCountry={origin?.country}
         destinationCountry={destination?.country}
+        originWeather={originWeather}
+        destinationWeather={destinationWeather}
+        divertedWeather={divertedWeather}
       />
       <LiveFlightMap track={track} trail={trail} />
       {history && <DelayTrendChart history={history} />}

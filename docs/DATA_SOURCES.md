@@ -25,6 +25,17 @@
   call rate independent of this (`OPENSKY_MIN_POLL_INTERVAL_SECONDS`) so a burst of frontend polling can never
   translate into a burst of upstream calls.
 
+## Open-Meteo
+
+- **Used for**: airport weather glyphs on the status card (current conditions + hourly forecast, see
+  `docs/features/status-card-requirements.md#SC-D2`), keyed by an airport's `lat`/`lon`.
+- **Not used for**: anything flight-specific — this is airport+time data, not derived from AeroAPI's
+  flight-status payload (see `#SC-X4`).
+- **Auth**: none — no API key, no signup step.
+- **Pricing model**: free for this app's volume; no rate limits relevant at personal-project scale.
+- **Getting access**: nothing to set up — `backend/app/clients/openmeteo_client.py` calls
+  `https://api.open-meteo.com/v1/forecast` directly.
+
 ## Why not FlightRadar24's API
 
 FR24's consumer "Gold" subscription (a personal account tier for their app/website) does **not** include API
@@ -46,6 +57,7 @@ via `fetched_at`/`expires_at` columns on the caching tables):
 | Airport reference info | `airport` | Effectively permanent; refreshed only via manual reseed |
 | Live position | *(never cached from AeroAPI)* | Exclusively from OpenSky; polled at most once per `OPENSKY_MIN_POLL_INTERVAL_SECONDS` per flight |
 | Diverted-flight actual destination | `flight_snapshot` (`diverted_*` columns) | One extra AeroAPI call (by `fa_flight_id`), made once per cache refresh, only when `diverted: true` is seen — see `docs/features/status-card-requirements.md#SC-A4.3`. Diversions are rare, so this doesn't meaningfully change typical usage. |
+| Airport weather (Open-Meteo, free) | `airport_weather_snapshot` | 30 min TTL (`AIRPORT_WEATHER_CACHE_TTL_SECONDS`), refreshed on-demand per airport. Not an AeroAPI cost-control concern — no budget guard needed since Open-Meteo is free; the TTL exists purely for freshness. |
 
 A dev-time safety net (`backend/app/core/rate_limit.py`) tracks AeroAPI calls per day and warns/blocks past a
 configurable `AEROAPI_DAILY_CALL_BUDGET` — this exists to catch bugs (e.g. an accidental polling loop) during
@@ -54,5 +66,5 @@ development, not as a production billing system.
 ## Fixture / offline mode
 
 For tests and local development without spending real AeroAPI credit, the backend supports `FIXTURE_MODE=true`
-(see [`TESTING.md`](TESTING.md)), which swaps both clients for canned responses recorded under
-`backend/tests/fixtures/`. This is what the e2e suite runs against by default.
+(see [`TESTING.md`](TESTING.md)), which swaps all three clients (AeroAPI, OpenSky, and Open-Meteo) for canned
+responses. This is what the e2e suite runs against by default.

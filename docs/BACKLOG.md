@@ -24,6 +24,27 @@ gets scheduled, move/link it into `ROADMAP.md` and delete it from here.
   pass (the chosen image-rendering approach can't reuse the existing inline SVG icons without adding a
   new rendering dependency); text-only labels for v1.
 
+## Live tracking gaps (found while manually testing SC-D2 against a real flight)
+
+Tried a real flight (KLM248, KATL → EHAM) and its live map showed "Live tracking is unavailable" while
+genuinely airborne. Root-caused (not a regression from this session's work — both pre-existing):
+
+- **`aircraft_registry` was never actually populated.** The schema/resolver code for "registration ->
+  icao24 via a locally-synced table" (`backend/app/services/icao24_resolver.py`,
+  `backend/app/db/models.py`'s `AircraftRegistry`) exists, but the sync job that's supposed to populate it
+  from OpenSky's public aircraft database dump was never implemented — the table is empty, so resolution
+  always falls through to the noisier live-callsign fallback.
+- **OpenSky has no oceanic coverage.** It's a crowdsourced ground-receiver network, so a transatlantic/
+  transpacific flight goes dark for the ocean-crossing portion of the trip regardless of registry state —
+  this specific flight was ~45% through a KATL->AMS crossing, i.e. likely mid-Atlantic.
+
+**Future direction (explicitly wanted, not scoped yet)**: get closer to FR24-style continuous tracking,
+including over oceans. FR24's own oceanic coverage comes from paid satellite ADS-B data (e.g. Aireon) —
+free OpenSky fundamentally can't do this. Implementing the `aircraft_registry` sync would still be worth
+doing on its own (more reliable resolution for ordinary domestic/coastal flights), but genuine
+ocean-spanning coverage needs a different (likely paid) data source decision — no provider chosen, not
+in scope until picked up as its own pass.
+
 ## Carried over from `docs/features/status-card.md` Phase F
 
 - **SC-F1** (see [`status-card-requirements.md`](features/status-card-requirements.md) for the canonical

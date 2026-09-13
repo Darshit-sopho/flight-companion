@@ -13,9 +13,11 @@ where a requirement below explicitly touches shared airport-identity display.
 SC-E3, SC-X1 through SC-X3, SC-D1, and SC-D4 are all **implemented and tested** (see
 `backend/tests/unit/test_aeroapi_client.py`, `test_flight_lookup_service.py`, `test_operator_names.py`,
 `backend/tests/integration/test_flights_api.py`, and `frontend/tests/components/StatusTimelineCard.test.tsx`).
-**SC-D2** (weather glyph) and **SC-D3** (shareable card image) are **not yet implemented** — each needs a
-new external dependency decision (a weather API provider; an image-generation approach) not yet made, so
-they were deliberately left for a separate pass rather than bundled into this one.
+**SC-D2** (weather glyph, via Open-Meteo) is now **implemented and tested** (see
+`backend/tests/unit/test_openmeteo_client.py`, `test_wmo_weather_codes.py`, `test_weather_service.py`,
+`backend/tests/integration/test_airports_api.py`, and `StatusTimelineCard.test.tsx`'s "weather glyphs"
+tests). **SC-D3** (shareable card image) is **not yet implemented** — it needs an image-generation
+approach decision not yet made, so it's deliberately a separate pass.
 
 ## Phase A — Visual polish + progress indicator
 
@@ -117,9 +119,25 @@ they were deliberately left for a separate pass rather than bundled into this on
 - **SC-D1**: The card MUST show a live, client-side-ticking countdown (e.g. "boards in 42m" /
   time-remaining-in-flight) that updates between `useFlightStatus` polls, not only on each poll.
 - **SC-D2**: The card MUST show a compact/inline weather glyph per airport. A future click-to-expand into
-  a detailed weather view is a candidate follow-up, not part of this requirement.
+  a detailed weather view is a candidate follow-up, not part of this requirement (tracked in
+  `docs/BACKLOG.md`).
+  - **SC-D2.1 (RESOLVED)**: A "Now" glyph shows current conditions at that airport (icon + °F), sourced
+    from Open-Meteo and shown regardless of flight status — it's airport weather, not flight weather, so
+    it stays useful context even for a landed/cancelled flight.
+  - **SC-D2.2 (RESOLVED)**: A second glyph, visibly labeled **"At departure"** (origin leg) or **"At
+    arrival"** (destination/diverted leg) — not a vague "Outlook" — shows the forecast for the hour
+    nearest that leg's scheduled/estimated time. The label must be visible text on the card, not only a
+    hover tooltip, since a bare icon+temp pair gives no clue what it represents. Omitted when no cached
+    forecast hour falls within ~3 hours of that target (e.g. a flight booked beyond Open-Meteo's forecast
+    horizon) rather than showing a misleadingly stale match.
+  - **SC-D2.3 (implementation note)**: Open-Meteo's ~30 WMO weather codes are bucketed server-side
+    (`backend/app/services/wmo_weather_codes.py`) into 7 icon buckets before reaching the frontend, so the
+    frontend never needs its own copy of that table.
 - **SC-D3**: The product MUST support generating a shareable "card" image/preview from this component's
   data (e.g. for sharing into messaging apps).
+  - **SC-D3.1 (planned)**: Server-side PNG rendering, scoped to casual share-to-chat only for this pass.
+  - **SC-D3.2 (implementation note)**: Reusing the render endpoint for an auto-generated OpenGraph
+    link-preview image is deferred to `docs/BACKLOG.md`, not part of this requirement.
 - **SC-D4**: The delay/status badges MUST convey their meaning (ok/warn/bad) through a non-color signal
   in addition to color (icon, shape, or text), so the distinction isn't color-only.
 
@@ -147,3 +165,10 @@ Not in scope for the current pass; the current priority is the traveler-facing e
   matching the shape confirmed in SC-A4.3 (real example on file: EJA532, KIAD → KUNI, diverted to KCRW,
   2026-09-13) — including a `FixtureAeroAPIClient.get_flight_by_id` counterpart once that method exists
   (see SC-A4.3) — so this path has real unit/e2e coverage, not manual-only.
+- **SC-X4 (RESOLVED)**: A new, independently-cached external data source that is NOT derived from
+  AeroAPI's flight-status payload (e.g. SC-D2's weather, from Open-Meteo) gets its own table + service +
+  TTL — never columns bolted onto `FlightSnapshot`, and does not go through the SC-X1 AeroAPI→snapshot
+  mapping. This is why SC-D2's implementation touches neither `FlightSnapshot`,
+  `flight_lookup_service.py`, nor `AirportRef`/`FlightStatusResponse`: it has its own freshness policy
+  (30 min TTL, no `last_viewed_at` gating) on a completely separate, free API, and coupling it to
+  AeroAPI's paid, gated cache would let a slow/down third-party API affect the core status fetch.

@@ -7,7 +7,7 @@ from __future__ import annotations
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -48,6 +48,27 @@ class Airport(Base):
     lon: Mapped[float | None] = mapped_column(Float)
     timezone: Mapped[str | None] = mapped_column(String(64))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AirportWeatherSnapshot(Base):
+    """Independent, short-TTL cache of Open-Meteo current+hourly data for one airport — deliberately NOT
+    columns on FlightSnapshot (see docs/features/status-card-requirements.md#SC-X4): weather is airport+
+    time data on its own free API with its own freshness policy, not derived from AeroAPI's flight-status
+    payload. `hourly_forecast` holds the full ~7-day array so a leg's "outlook" hour can be recomputed
+    fresh whenever a flight's scheduled/estimated time is revised, without a new Open-Meteo call — see
+    weather_service.py.
+    """
+
+    __tablename__ = "airport_weather_snapshot"
+
+    airport_code: Mapped[str] = mapped_column(ForeignKey("airport.code"), primary_key=True)
+    current_weather_code: Mapped[int | None] = mapped_column(Integer)
+    current_temp_f: Mapped[float | None] = mapped_column(Float)
+    current_observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # [{"time": ISO8601 str, "temp_f": float, "weather_code": int}, ...], one entry per forecast hour.
+    hourly_forecast: Mapped[list] = mapped_column(JSON, default=list)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class AircraftRegistry(Base):

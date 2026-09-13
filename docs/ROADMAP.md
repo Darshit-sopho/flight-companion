@@ -13,7 +13,6 @@
 
 ## Near-term (still no accounts)
 
-- Airport weather (e.g. via Open-Meteo, keyed by airport lat/lon) in `AirportInfoPanel`.
 - A combined `/api/flights/{flight_id}/detail` endpoint to cut frontend round-trips (optimization, not a
   correctness fix — keep the split endpoints working either way).
 - Client-side-only "recent searches" (localStorage, no backend change).
