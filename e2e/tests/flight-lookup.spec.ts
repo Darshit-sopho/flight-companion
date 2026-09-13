@@ -23,6 +23,11 @@ test.describe("flight lookup workflow", () => {
     await expect(statusCard.getByRole("heading", { name: "ORD", exact: true })).toBeVisible();
     await expect(statusCard.locator(".badge")).toBeVisible();
 
+    // Weather glyphs (SC-D2): both legs get a Now + Outlook glyph, populated from
+    // FixtureOpenMeteoClient's canned forecast (see backend/app/clients/fixtures.py).
+    await expect(statusCard.locator('[title^="Now:"]')).toHaveCount(2);
+    await expect(statusCard.locator('[title^="Outlook:"]')).toHaveCount(2);
+
     // History/trend chart with computed stats.
     await expect(page.locator(".history-stats")).toBeVisible();
 

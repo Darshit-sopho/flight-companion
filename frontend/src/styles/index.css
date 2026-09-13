@@ -183,6 +183,22 @@ button:disabled {
   color: var(--text-muted);
 }
 
+.leg__weather {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.weather-glyph {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.weather-glyph__temp {
+  font-size: 0.85rem;
+}
+
 .leg__maps-link {
   display: inline-flex;
   align-items: center;

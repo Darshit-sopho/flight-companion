@@ -162,6 +162,36 @@ a distinct UI state — never fall back to showing a stale `position` as if it w
 }
 ```
 
+## `GET /api/airports/{code}/weather`
+
+Compact weather glyph data for one airport (docs/features/status-card-requirements.md#SC-D2) — "now"
+(current conditions) plus an "outlook" (forecast for the hour nearest a target time, e.g. a leg's
+scheduled/estimated departure or arrival). Sourced from Open-Meteo (free, no key) — see
+`docs/DATA_SOURCES.md#open-meteo`.
+
+**Path params**: `code` — IATA or ICAO airport code.
+
+**Query params**
+| Param | Type | Required | Notes |
+|---|---|---|---|
+| `at` | ISO 8601 datetime | no | Target time for the `outlook` glyph. Defaults to now. |
+
+**Response `200`**
+```json
+{
+  "code": "SFO",
+  "now": { "bucket": "partly_cloudy", "temp_f": 68.0, "at": "2026-09-12T14:05:00Z" },
+  "outlook": { "bucket": "rain", "temp_f": 55.0, "at": "2026-09-12T20:00:00Z" }
+}
+```
+
+`bucket` is one of `clear | partly_cloudy | overcast | fog | rain | snow | thunderstorm | null` (mapped
+server-side from Open-Meteo's WMO weather codes — see `app/services/wmo_weather_codes.py`). `outlook` is
+`null` when no cached forecast hour falls within ~3 hours of `at` (e.g. a flight booked far enough out
+that it's past Open-Meteo's forecast horizon).
+
+**Response `404`** — unknown airport code, or the airport has no known coordinates.
+
 ## Error shape
 
 All error responses follow FastAPI's default shape:

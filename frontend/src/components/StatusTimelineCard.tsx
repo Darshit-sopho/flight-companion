@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
 
-import type { AirportRef, FlightStatusResponse } from "../api/client";
+import type { AirportRef, AirportWeatherResponse, FlightStatusResponse } from "../api/client";
 import { FlightProgressBar } from "./FlightProgressBar";
 import { airportMapsUrl } from "./mapsLink";
 import { countdownLabel, formatDistance, formatDurationMinutes } from "./statusCardFormat";
 import { DelayIcon, DurationIcon, GateIcon, MapPinIcon, OperatorIcon, TerminalIcon } from "./statusCardIcons";
 import { formatTimeInZone, resolveTimezone, zoneAbbreviation, type TimezoneMode } from "./statusCardTime";
 import { TimezoneModeSelect } from "./TimezoneModeSelect";
+import { WeatherGlyph } from "./WeatherGlyph";
 
 interface Props {
   status: FlightStatusResponse;
   originCountry?: string | null;
   destinationCountry?: string | null;
+  originWeather?: AirportWeatherResponse | null;
+  destinationWeather?: AirportWeatherResponse | null;
+  divertedWeather?: AirportWeatherResponse | null;
 }
 
 const STATUS_LABEL: Record<FlightStatusResponse["status"], string> = {
@@ -50,6 +54,7 @@ interface LegColumnProps {
   tz: string | undefined;
   muted?: boolean;
   country?: string | null;
+  weather?: AirportWeatherResponse | null;
 }
 
 function LegColumn({
@@ -62,6 +67,7 @@ function LegColumn({
   tz,
   muted,
   country,
+  weather,
 }: LegColumnProps) {
   const location = [airport.city, country].filter(Boolean).join(", ");
   return (
@@ -90,6 +96,21 @@ function LegColumn({
             {airport.gate ?? "not yet available"} / {airport.terminal ?? "—"}
           </dd>
         </div>
+        {weather && (
+          <div>
+            <dt>Weather</dt>
+            <dd className="leg__weather">
+              <WeatherGlyph label="Now" bucket={weather.now.bucket} tempF={weather.now.temp_f} />
+              {weather.outlook && (
+                <WeatherGlyph
+                  label="Outlook"
+                  bucket={weather.outlook.bucket}
+                  tempF={weather.outlook.temp_f}
+                />
+              )}
+            </dd>
+          </div>
+        )}
       </dl>
       {(airport.name ?? airport.city) && (
         <a
@@ -110,7 +131,14 @@ function LegColumn({
   );
 }
 
-export function StatusTimelineCard({ status, originCountry, destinationCountry }: Props) {
+export function StatusTimelineCard({
+  status,
+  originCountry,
+  destinationCountry,
+  originWeather,
+  destinationWeather,
+  divertedWeather,
+}: Props) {
   const delay = delayLabel(status.delay_minutes);
   const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("per_leg");
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -194,6 +222,7 @@ export function StatusTimelineCard({ status, originCountry, destinationCountry }
           isCancelled={isCancelled}
           tz={originTz}
           country={originCountry}
+          weather={originWeather}
         />
 
         <div className="leg-arrow" aria-hidden="true">
@@ -210,6 +239,7 @@ export function StatusTimelineCard({ status, originCountry, destinationCountry }
           tz={destinationTz}
           muted={isDiverted}
           country={destinationCountry}
+          weather={destinationWeather}
         />
 
         {isDiverted && status.diverted && (
@@ -230,6 +260,7 @@ export function StatusTimelineCard({ status, originCountry, destinationCountry }
                 status.origin.timezone,
                 status.diverted.airport.timezone,
               )}
+              weather={divertedWeather}
             />
           </>
         )}

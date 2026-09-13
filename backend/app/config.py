@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     # 0 disables the budget guard entirely.
     aeroapi_daily_call_budget: int = 200
 
+    # Open-Meteo is free/unmetered, so this is a freshness choice, not a cost-control one: shorter than
+    # Airport's permanent cache (weather changes fast), longer than FlightSnapshot's 5-15 min (a compact
+    # glyph doesn't need that freshness).
+    airport_weather_cache_ttl_seconds: int = 1800
+
     cors_allow_origins: str = "http://localhost:5173"
 
     @property

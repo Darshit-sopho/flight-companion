@@ -114,6 +114,28 @@ export interface AirportResponse {
   local_time: string | null;
 }
 
+export type WeatherBucket =
+  | "clear"
+  | "partly_cloudy"
+  | "overcast"
+  | "fog"
+  | "rain"
+  | "snow"
+  | "thunderstorm";
+
+export interface WeatherReading {
+  bucket: WeatherBucket | null;
+  temp_f: number | null;
+  at: string;
+}
+
+export interface AirportWeatherResponse {
+  code: string;
+  now: WeatherReading;
+  /** Null when no cached forecast hour falls within ~3h of the requested time. */
+  outlook: WeatherReading | null;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -149,5 +171,9 @@ export const api = {
   },
   getAirport(code: string): Promise<AirportResponse> {
     return request(`/api/airports/${encodeURIComponent(code)}`);
+  },
+  getAirportWeather(code: string, at?: string): Promise<AirportWeatherResponse> {
+    const query = at ? `?at=${encodeURIComponent(at)}` : "";
+    return request(`/api/airports/${encodeURIComponent(code)}/weather${query}`);
   },
 };
