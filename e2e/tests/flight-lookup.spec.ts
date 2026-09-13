@@ -16,10 +16,11 @@ test.describe("flight lookup workflow", () => {
     await expect(page).toHaveURL(new RegExp(`/flight/${AIRBORNE_IDENT}/${TODAY}`));
     await expect(page.getByRole("heading", { name: new RegExp(AIRBORNE_IDENT) })).toBeVisible();
 
-    // Status card: both legs' airport codes and a delay badge.
+    // Status card: both legs' airport codes and a delay badge. Match the code heading specifically --
+    // the IATA/ICAO line underneath (e.g. "SFO · SFO") also contains the same text otherwise.
     const statusCard = page.locator(".status-card");
-    await expect(statusCard.getByText("SFO")).toBeVisible();
-    await expect(statusCard.getByText("ORD")).toBeVisible();
+    await expect(statusCard.getByRole("heading", { name: "SFO", exact: true })).toBeVisible();
+    await expect(statusCard.getByRole("heading", { name: "ORD", exact: true })).toBeVisible();
     await expect(statusCard.locator(".badge")).toBeVisible();
 
     // History/trend chart with computed stats.
