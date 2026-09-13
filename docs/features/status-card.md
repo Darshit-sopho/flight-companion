@@ -150,12 +150,8 @@ airport lookup - see implementation note above) in the flight-status mapping.
 
 ## Phase F — Deferred (family/friends-tracking focus, not now)
 
-Explicitly *not* in scope for this pass - the priority right now is the traveler's own experience.
-Revisit once Phases A-E (and D) are through.
-
-- [ ] Small "(your time: ...)" annotation showing the viewer's own local time alongside airport-local
-      times (from Phase B) - more valuable for someone tracking a loved one's flight from a different
-      timezone than for the traveler themselves.
+Moved to [`docs/BACKLOG.md`](../BACKLOG.md). The requirement itself stays canonical (SC-F1) in
+`docs/features/status-card-requirements.md` — IDs are never renumbered.
 
 ---
 

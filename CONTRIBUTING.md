@@ -49,7 +49,8 @@ If you change a backend response shape, update:
 
 ## Adding a new external data field
 
-If you're pulling something new from AeroAPI or OpenSky (e.g. airport weather):
+If you're pulling something new from AeroAPI, OpenSky, or a new external provider (e.g. airport weather
+from Open-Meteo):
 1. Add it to the relevant `clients/*.py` wrapper first, with a unit test using a recorded/mocked fixture.
 2. Decide its cache TTL in the owning service and document the reasoning in `docs/DATA_SOURCES.md`.
 3. Extend the Pydantic schema, then the frontend type + component.
