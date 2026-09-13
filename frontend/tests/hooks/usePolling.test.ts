@@ -38,15 +38,32 @@ describe("usePolling", () => {
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
-  it("does not fetch while the tab is hidden", async () => {
+  it("fetches at least once even when the tab is hidden from the start", async () => {
+    // Regression test: a link opened in a background tab (e.g. tapped from a messaging app while
+    // another app stays focused) has document.visibilityState === "hidden" the whole time it's not
+    // switched to. The old behavior skipped the very first fetch too, leaving the page stuck on its
+    // loading state forever until the tab was focused — found via real browser testing where the
+    // automated tab reported hidden=true throughout.
     setVisibility("hidden");
     const fetcher = vi.fn(async () => "data");
     const shouldStop = () => false;
 
     renderHook(() => usePolling(fetcher, 1000, shouldStop));
+
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+  });
+
+  it("does not schedule a recurring poll while hidden, after the first fetch", async () => {
+    setVisibility("hidden");
+    const fetcher = vi.fn(async () => "data");
+    const shouldStop = () => false;
+
+    renderHook(() => usePolling(fetcher, 1000, shouldStop));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
     await vi.advanceTimersByTimeAsync(5000);
 
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
   it("stops scheduling further polls once shouldStop returns true", async () => {

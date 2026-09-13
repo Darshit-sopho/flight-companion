@@ -10,6 +10,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.services.operator_names import get_operator_name
+
 
 class FlightSearchResponse(BaseModel):
     flight_id: str
@@ -31,6 +33,13 @@ class FlightSearchResponse(BaseModel):
 
 class AirportRef(BaseModel):
     code: str | None
+    # IATA code (e.g. "EWR") and common name/city — the identity travelers actually recognize, per
+    # docs/features/status-card-requirements.md#SC-E2. `code` remains the ICAO code (e.g. "KEWR") for
+    # secondary/technical display.
+    iata: str | None = None
+    name: str | None = None
+    city: str | None = None
+    timezone: str | None = None
     gate: str | None = None
     terminal: str | None = None
 
@@ -38,6 +47,29 @@ class AirportRef(BaseModel):
 class AircraftRef(BaseModel):
     registration: str | None = None
     type: str | None = None
+
+
+class OperatorRef(BaseModel):
+    """The operating carrier — may differ from the searched ident for codeshares (see
+    docs/ARCHITECTURE.md#aeroapi--opensky-linking and SC-C1). `name` is best-effort from a small static
+    lookup table (app/services/operator_names.py); `None` when the code isn't in that table.
+    """
+
+    icao: str | None = None
+    iata: str | None = None
+    name: str | None = None
+
+
+class DivertedInfo(BaseModel):
+    """Present only when `status = diverted` — see SC-A4. `airport` is the actual landing airport
+    (distinct from `FlightStatusResponse.destination`, which stays the originally-filed destination so
+    the frontend can show both).
+    """
+
+    airport: AirportRef
+    scheduled_arrival: datetime | None
+    estimated_arrival: datetime | None
+    actual_arrival: datetime | None
 
 
 class FlightStatusResponse(BaseModel):
@@ -54,15 +86,61 @@ class FlightStatusResponse(BaseModel):
     actual_arrival: datetime | None
     delay_minutes: int | None
     aircraft: AircraftRef
+    operator: OperatorRef | None = None
+    progress_percent: int | None = None
+    flight_duration_minutes: int | None = None
+    route_distance: int | None = None
+    diverted: DivertedInfo | None = None
 
     @classmethod
     def from_snapshot(cls, s) -> FlightStatusResponse:
+        operator = None
+        if s.operator_icao or s.operator_iata:
+            operator = OperatorRef(
+                icao=s.operator_icao,
+                iata=s.operator_iata,
+                name=get_operator_name(s.operator_icao),
+            )
+
+        diverted = None
+        if s.status == "diverted" and s.diverted_destination_code:
+            diverted = DivertedInfo(
+                airport=AirportRef(
+                    code=s.diverted_destination_code,
+                    iata=s.diverted_destination_iata,
+                    name=s.diverted_destination_name,
+                    city=s.diverted_destination_city,
+                    timezone=s.diverted_destination_timezone,
+                    gate=s.diverted_arrival_gate,
+                    terminal=s.diverted_arrival_terminal,
+                ),
+                scheduled_arrival=s.diverted_scheduled_arrival,
+                estimated_arrival=s.diverted_estimated_arrival,
+                actual_arrival=s.diverted_actual_arrival,
+            )
+
         return cls(
             flight_id=s.flight_id,
             ident=s.ident,
             status=s.status.value if hasattr(s.status, "value") else s.status,
-            origin=AirportRef(code=s.origin_code, gate=s.departure_gate, terminal=s.departure_terminal),
-            destination=AirportRef(code=s.destination_code, gate=s.arrival_gate, terminal=s.arrival_terminal),
+            origin=AirportRef(
+                code=s.origin_code,
+                iata=s.origin_iata,
+                name=s.origin_name,
+                city=s.origin_city,
+                timezone=s.origin_timezone,
+                gate=s.departure_gate,
+                terminal=s.departure_terminal,
+            ),
+            destination=AirportRef(
+                code=s.destination_code,
+                iata=s.destination_iata,
+                name=s.destination_name,
+                city=s.destination_city,
+                timezone=s.destination_timezone,
+                gate=s.arrival_gate,
+                terminal=s.arrival_terminal,
+            ),
             scheduled_departure=s.scheduled_departure,
             estimated_departure=s.estimated_departure,
             actual_departure=s.actual_departure,
@@ -71,6 +149,11 @@ class FlightStatusResponse(BaseModel):
             actual_arrival=s.actual_arrival,
             delay_minutes=s.delay_minutes,
             aircraft=AircraftRef(registration=s.registration, type=s.aircraft_type),
+            operator=operator,
+            progress_percent=s.progress_percent,
+            flight_duration_minutes=s.flight_duration_minutes,
+            route_distance=s.route_distance,
+            diverted=diverted,
         )
 
 

@@ -9,6 +9,14 @@ Scope: `frontend/src/components/StatusTimelineCard.tsx` and the backend fields i
 out-of-scope boundary as the plan doc — live map, history chart, and airport panels are separate, except
 where a requirement below explicitly touches shared airport-identity display.
 
+**Implementation status**: SC-A1 through SC-A7, SC-B1 through SC-B3, SC-C1 through SC-C3, SC-E1 through
+SC-E3, SC-X1 through SC-X3, SC-D1, and SC-D4 are all **implemented and tested** (see
+`backend/tests/unit/test_aeroapi_client.py`, `test_flight_lookup_service.py`, `test_operator_names.py`,
+`backend/tests/integration/test_flights_api.py`, and `frontend/tests/components/StatusTimelineCard.test.tsx`).
+**SC-D2** (weather glyph) and **SC-D3** (shareable card image) are **not yet implemented** — each needs a
+new external dependency decision (a weather API provider; an image-generation approach) not yet made, so
+they were deliberately left for a separate pass rather than bundled into this one.
+
 ## Phase A — Visual polish + progress indicator
 
 - **SC-A1**: The card MUST show a visual progress indicator (e.g. a progress bar) positioned between the

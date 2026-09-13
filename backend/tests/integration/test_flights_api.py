@@ -126,6 +126,41 @@ def test_airport_endpoint_unknown_code_returns_404(make_client):
     assert response.status_code == 404
 
 
+def test_status_endpoint_returns_status_card_fields(make_client):
+    client = make_client()
+    client.get("/api/flights/search", params={"ident": "FIX100", "date": "2026-09-12"})
+
+    response = client.get("/api/flights/FIX100-2026-09-12")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["progress_percent"] == 35
+    assert body["flight_duration_minutes"] == 330
+    assert body["route_distance"] == 1846
+    assert body["operator"]["icao"] == "SWO"
+    assert body["origin"]["iata"] == "SFO"
+    assert body["origin"]["name"] == "San Francisco International Airport"
+    assert body["origin"]["timezone"] == "America/Los_Angeles"
+    assert body["diverted"] is None
+
+
+def test_status_endpoint_diverted_flight_shows_original_and_diverted_destination(make_client):
+    client = make_client()
+    client.get("/api/flights/search", params={"ident": "FIX300", "date": "2026-09-12"})
+
+    response = client.get("/api/flights/FIX300-2026-09-12")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "diverted"
+    # Original (filed) destination is untouched.
+    assert body["destination"]["code"] == "DEN"
+    # Actual diverted-to destination is a separate object.
+    assert body["diverted"] is not None
+    assert body["diverted"]["airport"]["code"] == "LAS"
+    assert body["diverted"]["actual_arrival"] is not None
+
+
 def test_cache_hit_does_not_call_aeroapi_again_within_ttl(make_client):
     call_count = {"n": 0}
 

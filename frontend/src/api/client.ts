@@ -18,6 +18,11 @@ export interface FlightSearchResponse {
 
 export interface AirportRef {
   code: string | null;
+  /** IATA code (e.g. "SFO") — the identity travelers actually recognize; `code` is ICAO (e.g. "KSFO"). */
+  iata: string | null;
+  name: string | null;
+  city: string | null;
+  timezone: string | null;
   gate: string | null;
   terminal: string | null;
 }
@@ -25,6 +30,22 @@ export interface AirportRef {
 export interface AircraftRef {
   registration: string | null;
   type: string | null;
+}
+
+export interface OperatorRef {
+  icao: string | null;
+  iata: string | null;
+  /** Best-effort friendly name from a small static lookup; null if the code isn't in that table. */
+  name: string | null;
+}
+
+export interface DivertedInfo {
+  /** The ACTUAL landing airport — distinct from FlightStatusResponse.destination, which stays the
+   * originally-filed destination so the UI can show both. */
+  airport: AirportRef;
+  scheduled_arrival: string | null;
+  estimated_arrival: string | null;
+  actual_arrival: string | null;
 }
 
 export interface FlightStatusResponse {
@@ -41,6 +62,12 @@ export interface FlightStatusResponse {
   actual_arrival: string | null;
   delay_minutes: number | null;
   aircraft: AircraftRef;
+  operator: OperatorRef | null;
+  progress_percent: number | null;
+  flight_duration_minutes: number | null;
+  route_distance: number | null;
+  /** Non-null only when status === "diverted". */
+  diverted: DivertedInfo | null;
 }
 
 export interface HistoryOccurrence {

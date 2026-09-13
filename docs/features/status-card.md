@@ -27,16 +27,16 @@ duration, or airport identity/geo beyond the bare code.
 
 ## Phase A — Visual polish + flight progress indicator
 
-- [ ] **Decided.** Add a progress bar between the origin and destination legs, driven by AeroAPI's
+- [x] **Implemented.** Add a progress bar between the origin and destination legs, driven by AeroAPI's
       `progress_percent` field (0-100, not currently captured — needs `FlightSnapshot` column +
       `FlightStatusResponse` field + `upsert_snapshot_from_aeroapi` mapping).
-- [ ] **Decided.** Collapse the current three time rows (Scheduled/Estimated/Actual) to two:
+- [x] **Implemented.** Collapse the current three time rows (Scheduled/Estimated/Actual) to two:
       **Scheduled** and a second dynamic row that shows **Estimated** until the real value is known, then
       **swaps in place** to **Actual** once AeroAPI reports it (i.e. the row's *label* changes from
       "Estimated" to "Actual" the moment `actual_out`/`actual_in` is non-null — it's the same row, not an
       added third one).
-- [ ] **Decided.** If the flight is `cancelled`, that dynamic row shows "Cancelled" instead of a time.
-- [ ] **Decided.** If the flight is `diverted`: gray out the original destination column (its times/gate
+- [x] **Implemented.** If the flight is `cancelled`, that dynamic row shows "Cancelled" instead of a time.
+- [x] **Implemented.** If the flight is `diverted`: gray out the original destination column (its times/gate
       stay visible but visually muted), and add a **third column** showing the diverted-to destination's
       info (code/name, times, gate/terminal — same shape as a normal leg).
   - **Research resolved** (checked against a real diverted flight: EJA532, KIAD → KUNI, diverted to
@@ -50,10 +50,10 @@ duration, or airport identity/geo beyond the bare code.
     seen, to fetch the actual-outcome record before the grayed-out-original + new-column UI can be
     populated. See `docs/features/status-card-requirements.md`'s SC-A4.3 for the full write-up, and
     SC-X3 for the fixture this needs before it's testable in CI.
-- [ ] **Decided.** General layout/spacing/typography pass.
-- [ ] **Decided.** Icons alongside the existing text labels (not replacing them) for gate/terminal/delay.
-- [ ] **Decided.** Keep the current delay badge thresholds (≤15m ok, ≤45m warn, >45m bad).
-- [ ] **Decided.** Mobile-width pass (~360-400px) once the above lands.
+- [x] **Implemented.** General layout/spacing/typography pass.
+- [x] **Implemented.** Icons alongside the existing text labels (not replacing them) for gate/terminal/delay.
+- [x] **Implemented.** Keep the current delay badge thresholds (≤15m ok, ≤45m warn, >45m bad).
+- [x] **Implemented.** Mobile-width pass (~360-400px) once the above lands.
 
 **Backend work**: `progress_percent` column + schema field + mapping.
 **Frontend work**: the component, the Scheduled/dynamic-row time logic, the diverted 3-column layout,
@@ -61,20 +61,20 @@ duration, or airport identity/geo beyond the bare code.
 
 ## Phase B — Time zone clarity
 
-- [ ] **Decided.** Default: each leg's times shown in *that airport's own* local time (origin leg in
+- [x] **Implemented.** Default: each leg's times shown in *that airport's own* local time (origin leg in
       origin's zone, destination leg in destination's zone) — matches how airport departure boards work.
       No backend change needed: `FlightDetailContent` already fetches both airports' `AirportResponse`
       (with `timezone`) alongside the status; pass each leg's timezone down into `StatusTimelineCard`,
       same fix already applied to `AirportInfoPanel` (see that component + its regression test for the
       pattern to reuse).
-- [ ] **Decided.** Add a control (button/dropdown/segmented control — implementation detail, pick
+- [x] **Implemented.** Add a control (button/dropdown/segmented control — implementation detail, pick
       whatever fits the redesigned layout from Phase A) to switch the *whole card* to a single uniform
       timezone, with three selectable modes in addition to the default:
   - **Origin airport's timezone** for both legs (so destination time is shown converted into origin's zone).
   - **Destination airport's timezone** for both legs.
   - **UTC** for both legs.
   - Default stays **per-leg airport-local** (no override) unless the user picks one of the above.
-- [ ] **Decided.** Whichever mode is active, label times explicitly (timezone abbreviation or UTC offset)
+- [x] **Implemented.** Whichever mode is active, label times explicitly (timezone abbreviation or UTC offset)
       so it's never ambiguous which clock is shown — matters more once multiple modes exist.
 - [ ] **Deferred to Phase F** (not this phase): a small "(your time: ...)" viewer-local-time annotation.
       Wanted eventually, but it's aimed at the family/friends-tracking use case; traveler-facing work
@@ -107,10 +107,10 @@ decided fields; a small static operator-code → name table.
 
 Raised in review as must-haves for the traveler-facing experience, ranked alongside A-C in priority.
 
-- [ ] **Decided.** Show **estimated journey duration / flight time** on the card. Shares its underlying
+- [x] **Implemented.** Show **estimated journey duration / flight time** on the card. Shares its underlying
       data with Phase C's `filed_ete` — implement together with that field; this item is the "make sure
       it's actually visible on the card, not buried" requirement.
-- [ ] **Decided.** Airport identity should lead with the **common name and the code most travelers
+- [x] **Implemented.** Airport identity should lead with the **common name and the code most travelers
       actually recognize** (the IATA code printed on boarding passes/departure boards, e.g. `EWR`, `BOS`,
       `DEL`) rather than the ICAO code we currently store and display (e.g. `KEWR`). Show IATA/ICAO
       codes secondarily (e.g. smaller text, a tooltip) where useful, not as the primary label.
@@ -121,7 +121,7 @@ Raised in review as must-haves for the traveler-facing experience, ranked alongs
     extra AeroAPI call** at all (cost-control win, not just a display fix) - only worth confirming this
     holds for both scheduled and elapsed flights before relying on it exclusively instead of the separate
     `/airports/{code}` lookup.
-- [ ] **Decided.** Provide a map link (Google Maps / Apple Maps - platform-appropriate, or a generic maps
+- [x] **Implemented.** Provide a map link (Google Maps / Apple Maps - platform-appropriate, or a generic maps
       search URL that both can open) for departure and arrival, one per leg. Link to the specific
       terminal when known, else fall back to the airport itself.
   - **Implementation note**: we have airport lat/lon (`Airport.lat`/`lon`), but not terminal-level
@@ -136,15 +136,17 @@ airport lookup - see implementation note above) in the flight-status mapping.
 
 ## Phase D — Further polish (all approved)
 
-- [ ] **Decided.** Live countdown timer that ticks client-side between polls (e.g. "boards in 42m"),
+- [x] **Implemented.** Live countdown timer that ticks client-side between polls (e.g. "boards in 42m"),
       rather than only updating on each `useFlightStatus` poll.
-- [ ] **Decided.** Small **inline/compact** weather glyph per airport for now; a later click-to-expand
-      into a more detailed weather view is a good follow-on idea but not in scope yet.
-- [ ] **Decided.** A shareable "card" image/preview (e.g. for messaging apps) generated from this
-      component's data.
-- [ ] **Decided.** Accessibility pass on the delay/status badges — color alone currently carries meaning
-      for the ok/warn/bad tones; needs a non-color signal too (icon/shape/text already helps once Phase
-      A's icons land, but confirm it's sufficient).
+- [ ] **Decided, not yet implemented.** Small **inline/compact** weather glyph per airport for now; a
+      later click-to-expand into a more detailed weather view is a good follow-on idea but not in scope
+      yet. **Deferred**: needs a weather API provider chosen first (none picked yet) — separate
+      implementation pass.
+- [ ] **Decided, not yet implemented.** A shareable "card" image/preview (e.g. for messaging apps)
+      generated from this component's data. **Deferred**: needs an image-generation approach chosen
+      first — separate implementation pass.
+- [x] **Implemented.** Accessibility pass on the delay/status badges — the delay badge already pairs an
+      icon with an explicit text label ("On time (5m)" / "Delayed 60m"), so tone is never color-only.
 
 ## Phase F — Deferred (family/friends-tracking focus, not now)
 

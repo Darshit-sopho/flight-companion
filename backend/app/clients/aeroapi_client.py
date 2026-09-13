@@ -60,6 +60,33 @@ class AeroAPIClient:
             raise AeroAPINotFoundError(f"No flight found for {ident} on {date}")
         return flights[0]
 
+    def get_flight_by_id(self, fa_flight_id: str) -> dict:
+        """Fetch a specific flight instance by AeroAPI's own identifier, used exclusively for the
+        diverted-flight case (docs/features/status-card-requirements.md#SC-A4.3): querying by ident+date
+        only ever returns the ORIGINALLY FILED record (`diverted: true`, destination = planned airport).
+        The actual outcome (`diverted: false, status: "Arrived"`, destination = where it actually landed)
+        is a SEPARATE record sharing the same `fa_flight_id`, only retrievable this way.
+
+        Multiple records can share one fa_flight_id; this returns whichever one has real arrival data
+        (`actual_on` populated), falling back to a non-diverted record, then to the first result — see
+        SC-A4.3 for the confirmed real-world shape this is based on.
+        """
+        aeroapi_budget.record_call()
+        response = self._client.get(f"/flights/{fa_flight_id}")
+        if response.status_code == 404:
+            raise AeroAPINotFoundError(f"No flight found for fa_flight_id {fa_flight_id}")
+        response.raise_for_status()
+        flights = (response.json() or {}).get("flights") or []
+        if not flights:
+            raise AeroAPINotFoundError(f"No flight found for fa_flight_id {fa_flight_id}")
+        for flight in flights:
+            if flight.get("actual_on"):
+                return flight
+        for flight in flights:
+            if not flight.get("diverted"):
+                return flight
+        return flights[0]
+
     def get_flight_history(self, ident: str, limit: int = 10) -> list[dict]:
         """Fetch recent past occurrences of this flight number."""
         aeroapi_budget.record_call()

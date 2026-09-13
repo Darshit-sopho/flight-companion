@@ -19,15 +19,20 @@ export function usePolling<T>(
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     stoppedRef.current = false;
+    let hasFetchedOnce = false;
 
     const tick = async () => {
       if (cancelled || stoppedRef.current) return;
-      if (document.visibilityState === "hidden") {
+      // Only the RECURRING poll is skipped while hidden — the very first fetch always goes through
+      // regardless of visibility, or a link opened in a background tab (common when tapping a link
+      // from a messaging app) would show a loading state forever until the tab is focused.
+      if (hasFetchedOnce && document.visibilityState === "hidden") {
         timer = setTimeout(tick, intervalMs);
         return;
       }
       try {
         const result = await fetcher();
+        hasFetchedOnce = true;
         if (cancelled) return;
         setData(result);
         setError(null);
@@ -36,6 +41,7 @@ export function usePolling<T>(
           return;
         }
       } catch (err) {
+        hasFetchedOnce = true;
         if (!cancelled) setError(err as Error);
       }
       if (!cancelled && !stoppedRef.current) {
