@@ -212,6 +212,29 @@ describe("StatusTimelineCard", () => {
     });
   });
 
+  describe("airport name truncation", () => {
+    it("sets a title attribute with the full name, for a hover tooltip when the name is truncated", () => {
+      render(<StatusTimelineCard status={baseStatus} />);
+      expect(screen.getByText("(San Francisco International Airport)")).toHaveAttribute(
+        "title",
+        "San Francisco International Airport",
+      );
+      expect(screen.getByText("(O'Hare International Airport)")).toHaveAttribute(
+        "title",
+        "O'Hare International Airport",
+      );
+    });
+
+    it("falls back to the city as the title when there is no airport name", () => {
+      const status: FlightStatusResponse = {
+        ...baseStatus,
+        origin: { ...baseStatus.origin, name: null },
+      };
+      render(<StatusTimelineCard status={status} />);
+      expect(screen.getByText("(San Francisco)")).toHaveAttribute("title", "San Francisco");
+    });
+  });
+
   describe("airport city/country location line", () => {
     it("shows city and country together when both are known", () => {
       render(

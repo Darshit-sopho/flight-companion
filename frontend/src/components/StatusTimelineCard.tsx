@@ -78,7 +78,9 @@ function LegColumn({
     <div className={`leg${muted ? " leg--muted" : ""}`} aria-label={label}>
       <h3>{airport.iata ?? airport.code ?? "—"}</h3>
       {(airport.name ?? airport.city) && (
-        <p className="leg__name">({airport.name ?? airport.city})</p>
+        <p className="leg__name" title={airport.name ?? airport.city ?? undefined}>
+          ({airport.name ?? airport.city})
+        </p>
       )}
       {location && <p className="leg__location">{location}</p>}
       <dl>
