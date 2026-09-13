@@ -150,7 +150,7 @@ airport lookup - see implementation note above) in the flight-status mapping.
 
 ## Phase F — Deferred (family/friends-tracking focus, not now)
 
-Moved to [`docs/BACKLOG.md`](../BACKLOG.md). The requirement itself stays canonical (SC-F1) in
+Moved to [`docs/PLANNED_WORK.md`](../PLANNED_WORK.md). The requirement itself stays canonical (SC-F1) in
 `docs/features/status-card-requirements.md` — IDs are never renumbered.
 
 ---

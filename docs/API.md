@@ -126,7 +126,7 @@ same cached `FlightSnapshot` the JSON status endpoint serves, so it introduces n
 and no new cache.
 
 **Response `200`**: `image/png`, 1200x630 (the OpenGraph standard size, chosen so a future auto-generated
-link-preview image — see `docs/BACKLOG.md` — can reuse this endpoint without a resize).
+link-preview image — see `docs/PLANNED_WORK.md` — can reuse this endpoint without a resize).
 
 **Response `404`** — unknown `flight_id`.
 
