@@ -1,103 +1,155 @@
 # Status Card Improvements — Plan
 
-Working doc for `feature/status-card-improvements`. This is a draft to edit, not a spec handed down —
-trim, reorder, or add to it as you see fit. Each phase is meant to be a mergeable chunk of work on its
-own, roughly in priority order, but they don't strictly depend on each other except where noted.
+Working doc for `feature/status-card-improvements`. Reviewed once already — decisions below are marked
+**Decided**; anything still open is marked **Open**. See `docs/features/status-card-requirements.md` for
+the same scope written up as numbered requirements (SC-A1, SC-B1, ...) to implement/test against.
 
 **Scope**: the top card on the flight detail page (`frontend/src/components/StatusTimelineCard.tsx`) —
-ident, status, delay, the two-leg scheduled/estimated/actual/gate/terminal layout, aircraft line. Not the
-live map, history chart, or airport panels (separate components, separate concerns).
+ident, status, delay, the per-leg time/gate/terminal layout, aircraft line. Not the live map, history
+chart, or airport panels (separate components, separate concerns) — though Phase E touches how airport
+identity is displayed, which does overlap slightly with `AirportInfoPanel`.
+
+**Priority ordering across phases** (traveler experience first): A → B → C → E → D. Phase F is explicitly
+deferred — it's aimed at the family/friends-tracking use case, and the current push is improving the
+webapp for the traveler first.
 
 ## Current state (for reference)
 
 Shows: ident + status badge, delay badge, per-leg (origin/destination) scheduled/estimated/actual times
 and gate/terminal, and an aircraft registration/type line. Times are formatted with the *viewer's* browser
-timezone (no explicit zone). Backend (`FlightStatusResponse`) currently exposes: times, delay_minutes,
-gate/terminal, aircraft registration/type — nothing about flight progress, operator, cabin/baggage info,
-or codeshare relationships, even though AeroAPI already returns a lot of this (see Phase C).
+timezone (no explicit zone). Airport identity is shown as whatever AeroAPI's generic `code` field returns
+per leg — in practice this is the **ICAO** code (e.g. `KEWR`), not the IATA code travelers actually
+recognize from boarding passes (`EWR`) — see Phase E. Backend (`FlightStatusResponse`) currently exposes:
+times, delay_minutes, gate/terminal, aircraft registration/type — nothing about flight progress, operator,
+duration, or airport identity/geo beyond the bare code.
 
 ---
 
 ## Phase A — Visual polish + flight progress indicator
 
-**Goal**: same information, presented better; the one new element is a progress bar/indicator, since
-AeroAPI already gives us this for free.
+- [ ] **Decided.** Add a progress bar between the origin and destination legs, driven by AeroAPI's
+      `progress_percent` field (0-100, not currently captured — needs `FlightSnapshot` column +
+      `FlightStatusResponse` field + `upsert_snapshot_from_aeroapi` mapping).
+- [ ] **Decided.** Collapse the current three time rows (Scheduled/Estimated/Actual) to two:
+      **Scheduled** and a second dynamic row that shows **Estimated** until the real value is known, then
+      **swaps in place** to **Actual** once AeroAPI reports it (i.e. the row's *label* changes from
+      "Estimated" to "Actual" the moment `actual_out`/`actual_in` is non-null — it's the same row, not an
+      added third one).
+- [ ] **Decided.** If the flight is `cancelled`, that dynamic row shows "Cancelled" instead of a time.
+- [ ] **Decided.** If the flight is `diverted`: gray out the original destination column (its times/gate
+      stay visible but visually muted), and add a **third column** showing the diverted-to destination's
+      info (code/name, times, gate/terminal — same shape as a normal leg).
+  - **Open / needs research before implementation**: confirm what AeroAPI actually returns for a diverted
+    flight's new destination — does `destination` mutate to the new airport (losing the original), or is
+    the original preserved elsewhere with a separate diversion-airport field? This determines whether we
+    can even populate "original destination, grayed out" + "diverted destination" simultaneously, or
+    whether we only ever see one or the other from AeroAPI at a time. Needs a real diverted-flight sample
+    (or AeroAPI docs) before this sub-item can be implemented — the requirements doc flags this as
+    unverified.
+- [ ] **Decided.** General layout/spacing/typography pass.
+- [ ] **Decided.** Icons alongside the existing text labels (not replacing them) for gate/terminal/delay.
+- [ ] **Decided.** Keep the current delay badge thresholds (≤15m ok, ≤45m warn, >45m bad).
+- [ ] **Decided.** Mobile-width pass (~360-400px) once the above lands.
 
-- [ ] Add a progress bar (or similar visual) between the origin and destination legs, driven by AeroAPI's
-      `progress_percent` field (0-100, not currently captured anywhere — needs `FlightSnapshot` column +
-      `FlightStatusResponse` field + `upsert_snapshot_from_aeroapi` mapping on the backend first).
-  - Open question: what should it show for `scheduled` (not yet departed, 0%) vs `landed` (100%) vs
-    `cancelled`/`diverted` (hide it? show last-known %?) states.
-- [ ] General layout/spacing/typography pass — this was built functionally-first, not designed.
-- [ ] Icons for gate/terminal/delay instead of (or alongside) text labels, if that reads better at a
-      glance than the current `dt`/`dd` list style.
-- [ ] Re-examine the delay badge's color thresholds (currently: ≤15m ok, ≤45m warn, >45m bad) — still the
-      right cutoffs?
-- [ ] Mobile-width pass specifically for this card once the above lands (check at ~360-400px).
-
-**Backend work**: `progress_percent` column + schema field + mapping (small, self-contained).
-**Frontend work**: the component itself + `docs/API.md` + `frontend/src/api/client.ts` types updated to
-match (see `CONTRIBUTING.md`'s rule on changing the API contract).
+**Backend work**: `progress_percent` column + schema field + mapping.
+**Frontend work**: the component, the Scheduled/dynamic-row time logic, the diverted 3-column layout,
+`docs/API.md` + `frontend/src/api/client.ts` kept in sync (see `CONTRIBUTING.md`).
 
 ## Phase B — Time zone clarity
 
-**Goal**: make it unambiguous which clock a displayed time is in, especially for someone checking a
-flight from a third time zone (neither departure nor arrival).
-
-- [ ] Decide the default: origin leg's times in the *origin airport's* local time, destination leg's
-      times in the *destination airport's* local time (matches how airport departure boards actually
-      display things) — vs. today's behavior (everything in the viewer's browser time).
-  - This needs no backend change: `FlightDetailContent` already fetches both airports' `AirportResponse`
-    (which includes `timezone`) in parallel with the status — just needs to pass each leg's timezone down
-    into `StatusTimelineCard`, the same fix already applied to `AirportInfoPanel`
-    (see `frontend/src/components/AirportInfoPanel.tsx` and its regression test for the pattern).
-- [ ] Decide whether to *also* show the viewer's local time somewhere (e.g. a small "(your time: ...)"
-      annotation), or keep it airport-local only with no toggle. A toggle is more flexible but is real
-      added UI complexity for a feature most users may not need.
-- [ ] Whatever's decided, label it explicitly (e.g. a small timezone abbreviation or UTC offset next to
-      each time) so it's never ambiguous which clock is being shown.
+- [ ] **Decided.** Default: each leg's times shown in *that airport's own* local time (origin leg in
+      origin's zone, destination leg in destination's zone) — matches how airport departure boards work.
+      No backend change needed: `FlightDetailContent` already fetches both airports' `AirportResponse`
+      (with `timezone`) alongside the status; pass each leg's timezone down into `StatusTimelineCard`,
+      same fix already applied to `AirportInfoPanel` (see that component + its regression test for the
+      pattern to reuse).
+- [ ] **Decided.** Add a control (button/dropdown/segmented control — implementation detail, pick
+      whatever fits the redesigned layout from Phase A) to switch the *whole card* to a single uniform
+      timezone, with three selectable modes in addition to the default:
+  - **Origin airport's timezone** for both legs (so destination time is shown converted into origin's zone).
+  - **Destination airport's timezone** for both legs.
+  - **UTC** for both legs.
+  - Default stays **per-leg airport-local** (no override) unless the user picks one of the above.
+- [ ] **Decided.** Whichever mode is active, label times explicitly (timezone abbreviation or UTC offset)
+      so it's never ambiguous which clock is shown — matters more once multiple modes exist.
+- [ ] **Deferred to Phase F** (not this phase): a small "(your time: ...)" viewer-local-time annotation.
+      Wanted eventually, but it's aimed at the family/friends-tracking use case; traveler-facing work
+      comes first.
 
 **Backend work**: none expected.
-**Frontend work**: `StatusTimelineCard.tsx`, `FlightDetailPage.tsx` (prop plumbing), tests.
+**Frontend work**: `StatusTimelineCard.tsx`, a small timezone-mode selector component/control,
+`FlightDetailPage.tsx` (prop plumbing), tests for all four display modes.
 
 ## Phase C — Richer flight information
 
-**Goal**: surface real AeroAPI fields we already pay for but don't show. Captured from a real response
-during manual testing (UA3513/RPA3513) — field names as AeroAPI actually returns them:
+**Decided fields** (see `docs/features/status-card-requirements.md` for exact field mapping):
+- **Operator / "operated by"** line (e.g. "Operated by Republic Airways (RPA) as United Express"), from
+  `operator` / `operator_icao` / `operator_iata`. Reuses the operating-ident concept already resolved
+  internally for live-tracking (`operating_ident_icao`) — natural place to also surface it to the user.
+  Needs a small carrier-code → friendly-name lookup table (AeroAPI doesn't hand us a display name).
+- **Flight duration**, from `filed_ete` (seconds). Ties into Phase E's journey-duration ask and Phase D's
+  live countdown — one piece of underlying data, several presentations (filed duration up front, a live
+  remaining-time countdown once airborne).
+- **Trip distance**, from `route_distance` (e.g. "651 mi").
 
-| AeroAPI field | Idea | Notes |
-|---|---|---|
-| `operator`, `operator_icao`, `operator_iata` | "Operated by Republic Airways (RPA) as United Express" style line | We already resolve the *operating* ident internally for live-tracking (`operating_ident_icao`) — this is the natural place to also surface it to the user. Needs a small carrier-code → name lookup (static table, since AeroAPI doesn't hand us a friendly name directly) |
-| `filed_ete` (seconds) | Flight duration, and/or a live countdown ("2h 14m to departure" / "1h 03m remaining") | `filed_ete` is the *filed* duration; a live remaining-time countdown would derive from `progress_percent` + `filed_ete`, or from now vs. `estimated_in` |
-| `baggage_claim` | Baggage claim number at arrival | Often `null` in practice — needs a graceful "not yet assigned" state, same pattern as gate |
-| `seats_cabin_business` / `_coach` / `_first` | Cabin configuration | Often `null`; low priority unless it turns out to be populated more often than our one sample flight |
-| `route_distance` (a number, likely miles) | "651 mi" style trip-distance line | Cosmetic, cheap to add once `progress_percent` plumbing (Phase A) exists |
-| `codeshares` / `codeshares_iata` | "Also sold as: AC4481, ..." | Nice-to-have; lower priority than the operator line above, which covers the main "why does this say a different airline" confusion |
+**Explicitly skipped for now**: `baggage_claim`, `seats_cabin_business/coach/first`, `codeshares` /
+`codeshares_iata`. Not worth the plumbing right now — revisit later if there's real demand.
 
-- [ ] Pick which of the above are worth the backend plumbing (each needs: `FlightSnapshot` column(s) →
-      `FlightStatusResponse` field(s) → `upsert_snapshot_from_aeroapi` mapping → frontend type + UI).
-      Recommend starting with the operator/"operated by" line — it's the highest-value one and reuses
-      data we already fetch for a different purpose.
-- [ ] For any field that's frequently `null` in practice (baggage claim, cabin seats), decide the
-      "not available" UX once, consistently, rather than per-field.
+**Backend work**: `FlightSnapshot` columns + `FlightStatusResponse` fields + mapping for the three
+decided fields; a small static operator-code → name table.
+**Frontend work**: new lines/sections in the card, tests per field.
 
-**Backend work**: schema + mapping changes per field chosen.
-**Frontend work**: new sub-sections/lines in the card, new tests per field.
+## Phase E — Traveler-experience essentials (new, from review)
 
-## Phase D — Further ideas / parking lot
+Raised in review as must-haves for the traveler-facing experience, ranked alongside A-C in priority.
 
-Lower-confidence or more speculative ideas raised alongside the above — worth a look once A-C are done,
-but not scoped in detail yet:
+- [ ] **Decided.** Show **estimated journey duration / flight time** on the card. Shares its underlying
+      data with Phase C's `filed_ete` — implement together with that field; this item is the "make sure
+      it's actually visible on the card, not buried" requirement.
+- [ ] **Decided.** Airport identity should lead with the **common name and the code most travelers
+      actually recognize** (the IATA code printed on boarding passes/departure boards, e.g. `EWR`, `BOS`,
+      `DEL`) rather than the ICAO code we currently store and display (e.g. `KEWR`). Show IATA/ICAO
+      codes secondarily (e.g. smaller text, a tooltip) where useful, not as the primary label.
+  - **Implementation note**: AeroAPI's flight-status response already embeds `code_iata`, `code_icao`,
+    `name`, and `city` directly on the `origin`/`destination` sub-objects in the *same* response we
+    already fetch for status — we're currently only reading the generic `code` field (which resolves to
+    ICAO) and discarding the rest. Capturing what's already in that response may mean this needs **no
+    extra AeroAPI call** at all (cost-control win, not just a display fix) - only worth confirming this
+    holds for both scheduled and elapsed flights before relying on it exclusively instead of the separate
+    `/airports/{code}` lookup.
+- [ ] **Decided.** Provide a map link (Google Maps / Apple Maps - platform-appropriate, or a generic maps
+      search URL that both can open) for departure and arrival, one per leg. Link to the specific
+      terminal when known, else fall back to the airport itself.
+  - **Implementation note**: we have airport lat/lon (`Airport.lat`/`lon`), but not terminal-level
+    geocoordinates from any source currently in use - "link to the terminal" in practice means a
+    *text-based* maps search query (e.g. "Terminal C, Newark Liberty International Airport"), not a
+    precise terminal pin. Good enough for "get me there," not a precision requirement.
 
-- [ ] Live countdown timer that ticks client-side between polls (e.g. "boards in 42m") rather than only
-      updating on each `useFlightStatus` poll — cosmetic but makes the card feel more "alive."
-- [ ] Small inline weather glyph per airport (already on the roadmap as a near-term item for the airport
-      panels in `docs/ROADMAP.md` — if it lands there first, consider whether the status card should
-      also show a compact version).
-- [ ] A shareable "card" image/preview (e.g. for messaging apps) generated from this component's data —
-      speculative, would need real demand before scoping further.
-- [ ] Accessibility pass specifically for the delay/status badges (color alone currently carries meaning
-      for the ok/warn/bad tones — should not rely on color alone).
+**Backend work**: capture IATA code (and ideally name/city, replacing or supplementing the separate
+airport lookup - see implementation note above) in the flight-status mapping.
+**Frontend work**: airport identity display change (also touches `AirportInfoPanel` for consistency), a
+"open in maps" link/icon per leg.
+
+## Phase D — Further polish (all approved)
+
+- [ ] **Decided.** Live countdown timer that ticks client-side between polls (e.g. "boards in 42m"),
+      rather than only updating on each `useFlightStatus` poll.
+- [ ] **Decided.** Small **inline/compact** weather glyph per airport for now; a later click-to-expand
+      into a more detailed weather view is a good follow-on idea but not in scope yet.
+- [ ] **Decided.** A shareable "card" image/preview (e.g. for messaging apps) generated from this
+      component's data.
+- [ ] **Decided.** Accessibility pass on the delay/status badges — color alone currently carries meaning
+      for the ok/warn/bad tones; needs a non-color signal too (icon/shape/text already helps once Phase
+      A's icons land, but confirm it's sufficient).
+
+## Phase F — Deferred (family/friends-tracking focus, not now)
+
+Explicitly *not* in scope for this pass - the priority right now is the traveler's own experience.
+Revisit once Phases A-E (and D) are through.
+
+- [ ] Small "(your time: ...)" annotation showing the viewer's own local time alongside airport-local
+      times (from Phase B) - more valuable for someone tracking a loved one's flight from a different
+      timezone than for the traveler themselves.
 
 ---
 
@@ -109,7 +161,9 @@ but not scoped in detail yet:
   `frontend/src/api/client.ts` — see `CONTRIBUTING.md`.
 - `map_status()` in `backend/app/services/utils.py` already has to cope with AeroAPI's real free-text
   compound status strings (e.g. `"En Route / On Time"`) — keep that in mind if any new field needs
-  similar string-parsing (e.g. codeshare lists come as arrays, not free text, so should be simpler).
+  similar string-parsing.
 - Test each phase the same way the rest of the project is tested: backend unit tests for any new
   mapping/aggregation logic, frontend component tests for new UI states, and a manual check against a
-  real flight (per `docs/TESTING.md`'s one manual smoke-test step) before merging.
+  real flight (per `docs/TESTING.md`'s one manual smoke-test step) before merging. Phase A's diverted-flight
+  handling in particular can't be verified against fixture data alone (fixtures don't simulate a real
+  diversion) — needs a real AeroAPI sample or careful manual construction before it can be trusted.
