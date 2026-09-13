@@ -10,6 +10,8 @@ import { TimezoneModeSelect } from "./TimezoneModeSelect";
 
 interface Props {
   status: FlightStatusResponse;
+  originCountry?: string | null;
+  destinationCountry?: string | null;
 }
 
 const STATUS_LABEL: Record<FlightStatusResponse["status"], string> = {
@@ -47,13 +49,28 @@ interface LegColumnProps {
   isCancelled: boolean;
   tz: string | undefined;
   muted?: boolean;
+  country?: string | null;
 }
 
-function LegColumn({ label, airport, scheduled, estimated, actual, isCancelled, tz, muted }: LegColumnProps) {
+function LegColumn({
+  label,
+  airport,
+  scheduled,
+  estimated,
+  actual,
+  isCancelled,
+  tz,
+  muted,
+  country,
+}: LegColumnProps) {
+  const location = [airport.city, country].filter(Boolean).join(", ");
   return (
     <div className={`leg${muted ? " leg--muted" : ""}`} aria-label={label}>
       <h3>{airport.iata ?? airport.code ?? "—"}</h3>
-      {(airport.name ?? airport.city) && <p className="leg__name">{airport.name ?? airport.city}</p>}
+      {(airport.name ?? airport.city) && (
+        <p className="leg__name">({airport.name ?? airport.city})</p>
+      )}
+      {location && <p className="leg__location">{location}</p>}
       <dl>
         <div>
           <dt>Scheduled</dt>
@@ -93,7 +110,7 @@ function LegColumn({ label, airport, scheduled, estimated, actual, isCancelled, 
   );
 }
 
-export function StatusTimelineCard({ status }: Props) {
+export function StatusTimelineCard({ status, originCountry, destinationCountry }: Props) {
   const delay = delayLabel(status.delay_minutes);
   const [timezoneMode, setTimezoneMode] = useState<TimezoneMode>("per_leg");
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -176,6 +193,7 @@ export function StatusTimelineCard({ status }: Props) {
           actual={status.actual_departure}
           isCancelled={isCancelled}
           tz={originTz}
+          country={originCountry}
         />
 
         <div className="leg-arrow" aria-hidden="true">
@@ -191,6 +209,7 @@ export function StatusTimelineCard({ status }: Props) {
           isCancelled={isCancelled}
           tz={destinationTz}
           muted={isDiverted}
+          country={destinationCountry}
         />
 
         {isDiverted && status.diverted && (

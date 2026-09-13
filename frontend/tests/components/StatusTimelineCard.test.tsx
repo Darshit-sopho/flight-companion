@@ -212,6 +212,31 @@ describe("StatusTimelineCard", () => {
     });
   });
 
+  describe("airport city/country location line", () => {
+    it("shows city and country together when both are known", () => {
+      render(
+        <StatusTimelineCard status={baseStatus} originCountry="US" destinationCountry="US" />,
+      );
+      expect(screen.getByText("San Francisco, US")).toBeInTheDocument();
+      expect(screen.getByText("Chicago, US")).toBeInTheDocument();
+    });
+
+    it("falls back to just the city when country isn't known yet", () => {
+      render(<StatusTimelineCard status={baseStatus} />);
+      expect(screen.getByText("San Francisco")).toBeInTheDocument();
+      expect(screen.getByText("Chicago")).toBeInTheDocument();
+    });
+
+    it("renders nothing for the location line when neither city nor country is known", () => {
+      const status: FlightStatusResponse = {
+        ...baseStatus,
+        origin: { ...baseStatus.origin, city: null },
+      };
+      render(<StatusTimelineCard status={status} />);
+      expect(screen.queryByText(/^,|,$/)).not.toBeInTheDocument();
+    });
+  });
+
   describe("map links (SC-E3)", () => {
     it("provides a maps link for each airport with a name", () => {
       render(<StatusTimelineCard status={baseStatus} />);

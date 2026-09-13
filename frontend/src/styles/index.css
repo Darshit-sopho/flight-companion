@@ -158,8 +158,21 @@ button:disabled {
   opacity: 0.45;
 }
 
+.leg h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
 .leg__name {
-  margin: 2px 0 0;
+  margin: 2px 0 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.leg__location {
+  margin: 0 0 16px;
   font-size: 0.8rem;
   color: var(--text-muted);
 }
