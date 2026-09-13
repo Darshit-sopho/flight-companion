@@ -39,13 +39,17 @@ duration, or airport identity/geo beyond the bare code.
 - [ ] **Decided.** If the flight is `diverted`: gray out the original destination column (its times/gate
       stay visible but visually muted), and add a **third column** showing the diverted-to destination's
       info (code/name, times, gate/terminal — same shape as a normal leg).
-  - **Open / needs research before implementation**: confirm what AeroAPI actually returns for a diverted
-    flight's new destination — does `destination` mutate to the new airport (losing the original), or is
-    the original preserved elsewhere with a separate diversion-airport field? This determines whether we
-    can even populate "original destination, grayed out" + "diverted destination" simultaneously, or
-    whether we only ever see one or the other from AeroAPI at a time. Needs a real diverted-flight sample
-    (or AeroAPI docs) before this sub-item can be implemented — the requirements doc flags this as
-    unverified.
+  - **Research resolved** (checked against a real diverted flight: EJA532, KIAD → KUNI, diverted to
+    KCRW, 2026-09-13). AeroAPI does not mutate one record — it returns **two flight records sharing the
+    same `fa_flight_id`**: one with `diverted: true`/`status: "Diverted"` whose `destination` is the
+    *originally filed* airport (KUNI), and a separate one with `diverted: false`/`status: "Arrived"` whose
+    `destination` is the *actual landing* airport (KCRW), with real `actual_off`/`actual_on` times.
+    The catch: **searching by ident + date only ever returns the first (original/diverted) record** — the
+    corrected "arrived at KCRW" record only appears when querying AeroAPI by that specific `fa_flight_id`.
+    So implementing this needs a second AeroAPI call (by `fa_flight_id`) whenever `diverted: true` is
+    seen, to fetch the actual-outcome record before the grayed-out-original + new-column UI can be
+    populated. See `docs/features/status-card-requirements.md`'s SC-A4.3 for the full write-up, and
+    SC-X3 for the fixture this needs before it's testable in CI.
 - [ ] **Decided.** General layout/spacing/typography pass.
 - [ ] **Decided.** Icons alongside the existing text labels (not replacing them) for gate/terminal/delay.
 - [ ] **Decided.** Keep the current delay badge thresholds (≤15m ok, ≤45m warn, >45m bad).
@@ -165,5 +169,6 @@ Revisit once Phases A-E (and D) are through.
 - Test each phase the same way the rest of the project is tested: backend unit tests for any new
   mapping/aggregation logic, frontend component tests for new UI states, and a manual check against a
   real flight (per `docs/TESTING.md`'s one manual smoke-test step) before merging. Phase A's diverted-flight
-  handling in particular can't be verified against fixture data alone (fixtures don't simulate a real
-  diversion) — needs a real AeroAPI sample or careful manual construction before it can be trusted.
+  handling now has a real confirmed AeroAPI response shape to build a fixture from (see the Phase A
+  diverted-flight note above and SC-X3) — build that fixture as part of implementing SC-A4, don't leave
+  it manual-only now that the shape is known.

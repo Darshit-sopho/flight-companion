@@ -29,10 +29,22 @@ where a requirement below explicitly touches shared airport-identity display.
     grayed out) rather than removed.
   - **SC-A4.2**: A third column MUST be added showing the diverted-to destination's info (code/name,
     times, gate/terminal), in the same shape as a normal leg column.
-  - **SC-A4.3 (blocked on research)**: Before A4.1/A4.2 can be implemented, confirm what AeroAPI actually
-    returns for a diverted flight — whether the original destination remains available alongside a new
-    diversion airport, or whether `destination` simply mutates and the original is lost. Requires a real
-    diverted-flight sample or AeroAPI documentation; not verifiable from fixture data alone.
+  - **SC-A4.3 (RESOLVED — see finding below)**: Confirmed against a real diverted flight
+    (EJA532, KIAD → KUNI, diverted to KCRW, 2026-09-13). AeroAPI does **not** mutate a single record in
+    place; it produces **two separate flight records that share the same `fa_flight_id`**:
+    - One with `diverted: true, cancelled: true, status: "Diverted"`, `destination` = the
+      **originally filed** airport (KUNI), `actual_off`/`actual_on` = null.
+    - One with `diverted: false, cancelled: false, status: "Arrived"`, `destination` = the
+      **actual landing** airport (KCRW), `actual_off`/`actual_on` populated with real times.
+
+    Critically, **searching by ident + date only surfaces the first (original/diverted) record** — the
+    corrected "Arrived at KCRW" record is only returned when querying `/flights/{fa_flight_id}` with the
+    *specific* `fa_flight_id` (obtained from the first record). This changes SC-A4's implementation
+    shape: on detecting `diverted: true` from the normal ident+date lookup, the backend must issue a
+    **second AeroAPI call** keyed on that flight's `fa_flight_id` to retrieve the actual-outcome record
+    before SC-A4.1/SC-A4.2 can be populated correctly. This needs its own `AeroAPIClient` method (e.g.
+    `get_flight_by_id(fa_flight_id)`) and is an extra cost-control consideration for
+    `docs/DATA_SOURCES.md` — but only triggers for the rare diverted case, not on every lookup.
 - **SC-A5**: Gate, terminal, and delay MUST each have an icon shown alongside their existing text label
   (icons supplement, not replace, the text).
 - **SC-A6**: The delay badge thresholds remain: on-time/ok for delay ≤ 15 minutes, warn for ≤ 45 minutes,
@@ -122,5 +134,8 @@ Not in scope for the current pass; the current priority is the traveler-facing e
   and "actual" states of the SC-A2 dynamic row), and one manual check against a real flight per
   `docs/TESTING.md`.
 - **SC-X3**: SC-A4 (diverted-flight handling) cannot be verified against the existing fixture data
-  (`backend/app/clients/fixtures.py` has no diverted-flight scenario) — either extend the fixtures with a
-  diverted case once SC-A4.3's research is resolved, or treat it as manual-verification-only.
+  (`backend/app/clients/fixtures.py` has no diverted-flight scenario). Now that SC-A4.3 is resolved, add a
+  third fixture ident (e.g. `FIX300`) whose `get_flight` returns the two-record diverted/arrived pair
+  matching the shape confirmed in SC-A4.3 (real example on file: EJA532, KIAD → KUNI, diverted to KCRW,
+  2026-09-13) — including a `FixtureAeroAPIClient.get_flight_by_id` counterpart once that method exists
+  (see SC-A4.3) — so this path has real unit/e2e coverage, not manual-only.
