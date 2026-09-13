@@ -76,7 +76,12 @@ class FlightSnapshot(Base):
 
     flight_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     ident: Mapped[str] = mapped_column(String(16), index=True)
+    # AeroAPI's own flight-instance identifier — needed to make the second, diverted-flight-specific
+    # lookup in live_tracking's sibling, flight_lookup_service (see diverted_* fields below and
+    # docs/features/status-card-requirements.md#SC-A4.3).
+    fa_flight_id: Mapped[str | None] = mapped_column(String(64))
     operator_icao: Mapped[str | None] = mapped_column(String(8))
+    operator_iata: Mapped[str | None] = mapped_column(String(8))
     # The operating carrier's full ICAO flight ident (AeroAPI's `ident_icao`, e.g. "RPA3513"), distinct
     # from `ident` (what the user searched, e.g. the marketing/codeshare number "UA3513"). This is what
     # actually gets broadcast over ADS-B as the callsign, so icao24_resolver's callsign fallback must
@@ -84,8 +89,21 @@ class FlightSnapshot(Base):
     operating_ident_icao: Mapped[str | None] = mapped_column(String(16))
     scheduled_date: Mapped[date] = mapped_column(Date)
 
+    # AeroAPI's flight-status response already embeds iata/name/city/timezone directly on the
+    # origin/destination sub-objects of the same response we already fetch for status — capturing them
+    # here means the status card can show traveler-friendly airport identity (docs/features/
+    # status-card-requirements.md#SC-E2) and per-leg local times (#SC-B1) without any extra AeroAPI call.
     origin_code: Mapped[str | None] = mapped_column(String(8))
+    origin_iata: Mapped[str | None] = mapped_column(String(4))
+    origin_name: Mapped[str | None] = mapped_column(String(200))
+    origin_city: Mapped[str | None] = mapped_column(String(100))
+    origin_timezone: Mapped[str | None] = mapped_column(String(64))
+
     destination_code: Mapped[str | None] = mapped_column(String(8))
+    destination_iata: Mapped[str | None] = mapped_column(String(4))
+    destination_name: Mapped[str | None] = mapped_column(String(200))
+    destination_city: Mapped[str | None] = mapped_column(String(100))
+    destination_timezone: Mapped[str | None] = mapped_column(String(64))
 
     registration: Mapped[str | None] = mapped_column(String(16))
     aircraft_type: Mapped[str | None] = mapped_column(String(16))
@@ -104,6 +122,29 @@ class FlightSnapshot(Base):
 
     status: Mapped[FlightStatus] = mapped_column(SAEnum(FlightStatus), default=FlightStatus.SCHEDULED)
     delay_minutes: Mapped[int | None] = mapped_column(Integer)
+
+    # Phase A: flight progress (docs/features/status-card-requirements.md#SC-A1).
+    progress_percent: Mapped[int | None] = mapped_column(Integer)
+    # Phase C: richer flight info (#SC-C1-C3). filed_ete arrives from AeroAPI in seconds; stored here
+    # already converted to minutes since nothing downstream needs the raw seconds value.
+    flight_duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    route_distance: Mapped[int | None] = mapped_column(Integer)
+
+    # Phase A: diverted-flight support (#SC-A4). Populated only when `status = diverted`, from a SECOND
+    # AeroAPI call keyed on fa_flight_id — see flight_lookup_service.py and SC-A4.3 for why a second call
+    # is unavoidable here. The origin_*/destination_* columns above stay as the ORIGINALLY FILED route;
+    # these columns hold the actual diverted-to destination, kept deliberately separate rather than
+    # overwriting destination_* so the UI can show both (grayed-out original + new column).
+    diverted_destination_code: Mapped[str | None] = mapped_column(String(8))
+    diverted_destination_iata: Mapped[str | None] = mapped_column(String(4))
+    diverted_destination_name: Mapped[str | None] = mapped_column(String(200))
+    diverted_destination_city: Mapped[str | None] = mapped_column(String(100))
+    diverted_destination_timezone: Mapped[str | None] = mapped_column(String(64))
+    diverted_scheduled_arrival: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    diverted_estimated_arrival: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    diverted_actual_arrival: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    diverted_arrival_gate: Mapped[str | None] = mapped_column(String(16))
+    diverted_arrival_terminal: Mapped[str | None] = mapped_column(String(8))
 
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

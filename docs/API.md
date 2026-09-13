@@ -36,8 +36,14 @@ Full current status.
   "flight_id": "UAL123-2026-09-12",
   "ident": "UAL123",
   "status": "active",
-  "origin": { "code": "SFO", "gate": "A12", "terminal": "2" },
-  "destination": { "code": "ORD", "gate": null, "terminal": "1" },
+  "origin": {
+    "code": "KSFO", "iata": "SFO", "name": "San Francisco International Airport",
+    "city": "San Francisco", "timezone": "America/Los_Angeles", "gate": "A12", "terminal": "2"
+  },
+  "destination": {
+    "code": "KORD", "iata": "ORD", "name": "O'Hare International Airport",
+    "city": "Chicago", "timezone": "America/Chicago", "gate": null, "terminal": "1"
+  },
   "scheduled_departure": "2026-09-12T14:30:00-07:00",
   "estimated_departure": "2026-09-12T14:45:00-07:00",
   "actual_departure": "2026-09-12T14:47:00-07:00",
@@ -45,13 +51,45 @@ Full current status.
   "estimated_arrival": "2026-09-12T20:22:00-05:00",
   "actual_arrival": null,
   "delay_minutes": 12,
-  "aircraft": { "registration": "N12345", "type": "B738" }
+  "aircraft": { "registration": "N12345", "type": "B738" },
+  "operator": { "icao": "RPA", "iata": "YX", "name": "Republic Airways" },
+  "progress_percent": 42,
+  "flight_duration_minutes": 330,
+  "route_distance": 1846,
+  "diverted": null
 }
 ```
 
 `status` is one of `scheduled | active | landed | cancelled | diverted`. Any field AeroAPI hasn't populated
 yet (e.g. `actual_arrival` before landing) is `null` — the frontend renders this as "not yet available," not
 as an error.
+
+`origin`/`destination`'s `code` is the ICAO code (e.g. `KSFO`); `iata` is the code travelers actually
+recognize (e.g. `SFO`) — see `docs/features/status-card-requirements.md#SC-E2` for why both are exposed.
+Both stay as the **originally filed** route even if the flight diverts — see `diverted` below.
+
+`operator` is `null` when AeroAPI doesn't report an operator code for this flight; `operator.name` is
+`null` when the code isn't in the small static lookup table (`app/services/operator_names.py`) — always
+show `operator.icao`/`operator.iata` as a fallback in that case.
+
+`progress_percent`, `flight_duration_minutes` (derived from AeroAPI's `filed_ete`), and `route_distance`
+are `null` when AeroAPI doesn't report them (uncommon, but happens for some flight types).
+
+`diverted` is `null` unless `status = "diverted"`, in which case it holds the **actual** landing airport
+(distinct from `destination` above, which stays the original plan) plus that airport's arrival times:
+```json
+{
+  "airport": {
+    "code": "KCRW", "iata": "CRW", "name": "West Virginia Intl Yeager",
+    "city": "Charleston", "timezone": "America/New_York", "gate": "D4", "terminal": null
+  },
+  "scheduled_arrival": null,
+  "estimated_arrival": null,
+  "actual_arrival": "2026-09-13T01:31:45Z"
+}
+```
+This requires a second AeroAPI call the backend makes automatically when it detects `diverted: true` —
+see `docs/features/status-card-requirements.md#SC-A4.3` for why a single call can't return this.
 
 ## `GET /api/flights/{flight_id}/history`
 

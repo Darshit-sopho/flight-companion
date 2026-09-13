@@ -69,7 +69,11 @@ function FlightDetailContent({ flightId }: { flightId: string }) {
 
   return (
     <>
-      <StatusTimelineCard status={status} />
+      <StatusTimelineCard
+        status={status}
+        originCountry={origin?.country}
+        destinationCountry={destination?.country}
+      />
       <LiveFlightMap track={track} trail={trail} />
       {history && <DelayTrendChart history={history} />}
       <div className="airport-panels">

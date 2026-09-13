@@ -149,12 +149,121 @@ button:disabled {
 
 .leg dt {
   color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.leg--muted {
+  opacity: 0.45;
+}
+
+.leg h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.leg__name {
+  margin: 2px 0 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.leg__location {
+  margin: 0 0 16px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.leg__codes {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.leg__maps-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.leg__maps-link:hover {
+  text-decoration: underline;
+}
+
+.tz-label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
 }
 
 .leg-arrow {
   align-self: center;
   color: var(--text-muted);
   font-size: 1.2rem;
+}
+
+.status-card__operator,
+.status-card__trip-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.status-card__trip-info span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-card__countdown {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.timezone-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.timezone-select select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+
+.flight-progress {
+  margin: 12px 0;
+}
+
+.flight-progress__track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.flight-progress__fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
 }
 
 .status-card__aircraft {

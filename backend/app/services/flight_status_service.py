@@ -27,7 +27,7 @@ def get_status(db: Session, aeroapi: AeroAPIClient, flight_id: str) -> FlightSna
     if ensure_aware(snapshot.expires_at) <= utcnow():
         raw = aeroapi.get_flight(snapshot.ident, snapshot.scheduled_date.isoformat())
         return upsert_snapshot_from_aeroapi(
-            db, flight_id, snapshot.ident, snapshot.scheduled_date.isoformat(), raw
+            db, aeroapi, flight_id, snapshot.ident, snapshot.scheduled_date.isoformat(), raw
         )
 
     db.commit()

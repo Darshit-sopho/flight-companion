@@ -45,6 +45,7 @@ via `fetched_at`/`expires_at` columns on the caching tables):
 | Historical past-occurrence data | `flight_history_record` | Days to weeks; a fully-elapsed occurrence is cached forever |
 | Airport reference info | `airport` | Effectively permanent; refreshed only via manual reseed |
 | Live position | *(never cached from AeroAPI)* | Exclusively from OpenSky; polled at most once per `OPENSKY_MIN_POLL_INTERVAL_SECONDS` per flight |
+| Diverted-flight actual destination | `flight_snapshot` (`diverted_*` columns) | One extra AeroAPI call (by `fa_flight_id`), made once per cache refresh, only when `diverted: true` is seen — see `docs/features/status-card-requirements.md#SC-A4.3`. Diversions are rare, so this doesn't meaningfully change typical usage. |
 
 A dev-time safety net (`backend/app/core/rate_limit.py`) tracks AeroAPI calls per day and warns/blocks past a
 configurable `AEROAPI_DAILY_CALL_BUDGET` — this exists to catch bugs (e.g. an accidental polling loop) during

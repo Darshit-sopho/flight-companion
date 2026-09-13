@@ -77,9 +77,7 @@ def test_codeshare_tries_both_marketing_and_operating_idents(sqlite_session):
     the operating carrier's "RPA3513") must have both idents checked, or the callsign fallback never
     matches even though OpenSky has live data for the aircraft. See docs/ARCHITECTURE.md.
     """
-    snapshot = _make_snapshot(
-        ident="UA3513", registration="N-UNKNOWN", operating_ident_icao="RPA3513"
-    )
+    snapshot = _make_snapshot(ident="UA3513", registration="N-UNKNOWN", operating_ident_icao="RPA3513")
     sqlite_session.add(snapshot)
     sqlite_session.commit()
 
