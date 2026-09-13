@@ -155,6 +155,15 @@ async function request<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function requestBlob(path: string): Promise<Blob> {
+  const response = await fetch(path);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new ApiError(response.status, body.detail ?? response.statusText);
+  }
+  return response.blob();
+}
+
 export const api = {
   searchFlight(ident: string, date: string): Promise<FlightSearchResponse> {
     const params = new URLSearchParams({ ident, date });
@@ -175,5 +184,8 @@ export const api = {
   getAirportWeather(code: string, at?: string): Promise<AirportWeatherResponse> {
     const query = at ? `?at=${encodeURIComponent(at)}` : "";
     return request(`/api/airports/${encodeURIComponent(code)}/weather${query}`);
+  },
+  getFlightCardImageBlob(flightId: string): Promise<Blob> {
+    return requestBlob(`/api/flights/${encodeURIComponent(flightId)}/card.png`);
   },
 };

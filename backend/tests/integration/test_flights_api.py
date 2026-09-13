@@ -174,3 +174,22 @@ def test_cache_hit_does_not_call_aeroapi_again_within_ttl(make_client):
     client.get("/api/flights/FIX100-2026-09-12")
 
     assert call_count["n"] == 1
+
+
+def test_card_image_endpoint_returns_a_png(make_client):
+    client = make_client()
+    client.get("/api/flights/search", params={"ident": "FIX100", "date": "2026-09-12"})
+
+    response = client.get("/api/flights/FIX100-2026-09-12/card.png")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert len(response.content) > 100
+
+
+def test_card_image_endpoint_unknown_flight_returns_404(make_client):
+    client = make_client()
+
+    response = client.get("/api/flights/DOES-NOT-EXIST/card.png")
+
+    assert response.status_code == 404

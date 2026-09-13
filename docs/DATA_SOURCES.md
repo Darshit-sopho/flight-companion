@@ -58,6 +58,7 @@ via `fetched_at`/`expires_at` columns on the caching tables):
 | Live position | *(never cached from AeroAPI)* | Exclusively from OpenSky; polled at most once per `OPENSKY_MIN_POLL_INTERVAL_SECONDS` per flight |
 | Diverted-flight actual destination | `flight_snapshot` (`diverted_*` columns) | One extra AeroAPI call (by `fa_flight_id`), made once per cache refresh, only when `diverted: true` is seen — see `docs/features/status-card-requirements.md#SC-A4.3`. Diversions are rare, so this doesn't meaningfully change typical usage. |
 | Airport weather (Open-Meteo, free) | `airport_weather_snapshot` | 30 min TTL (`AIRPORT_WEATHER_CACHE_TTL_SECONDS`), refreshed on-demand per airport. Not an AeroAPI cost-control concern — no budget guard needed since Open-Meteo is free; the TTL exists purely for freshness. |
+| Shareable card image (`GET /api/flights/{id}/card.png`) | *(no new cache/table)* | Renders on demand from the already-cached `flight_snapshot` row the JSON status endpoint serves — introduces no new external call and no new cache of its own. See `docs/features/status-card-requirements.md#SC-D3`. |
 
 A dev-time safety net (`backend/app/core/rate_limit.py`) tracks AeroAPI calls per day and warns/blocks past a
 configurable `AEROAPI_DAILY_CALL_BUDGET` — this exists to catch bugs (e.g. an accidental polling loop) during

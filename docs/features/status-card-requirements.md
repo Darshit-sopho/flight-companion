@@ -16,8 +16,10 @@ SC-E3, SC-X1 through SC-X3, SC-D1, and SC-D4 are all **implemented and tested** 
 **SC-D2** (weather glyph, via Open-Meteo) is now **implemented and tested** (see
 `backend/tests/unit/test_openmeteo_client.py`, `test_wmo_weather_codes.py`, `test_weather_service.py`,
 `backend/tests/integration/test_airports_api.py`, and `StatusTimelineCard.test.tsx`'s "weather glyphs"
-tests). **SC-D3** (shareable card image) is **not yet implemented** — it needs an image-generation
-approach decision not yet made, so it's deliberately a separate pass.
+tests). **SC-D3** (shareable card image, server-side PNG via Pillow) is now **implemented and tested**
+too (see `backend/tests/unit/test_card_image_service.py`, `test_flights_api.py`'s card-image tests, and
+`frontend/tests/components/ShareImageButton.test.tsx`) — scoped to casual share-to-chat only; the
+OpenGraph link-preview reuse (SC-D3.2) remains deferred per `docs/BACKLOG.md`.
 
 ## Phase A — Visual polish + progress indicator
 
@@ -135,7 +137,11 @@ approach decision not yet made, so it's deliberately a separate pass.
     frontend never needs its own copy of that table.
 - **SC-D3**: The product MUST support generating a shareable "card" image/preview from this component's
   data (e.g. for sharing into messaging apps).
-  - **SC-D3.1 (planned)**: Server-side PNG rendering, scoped to casual share-to-chat only for this pass.
+  - **SC-D3.1 (RESOLVED)**: Server-side PNG rendering via Pillow (`backend/app/services/
+    card_image_service.py`), scoped to casual share-to-chat only for this pass — a from-scratch draw of
+    the flight's key fields at 1200x630, not a screenshot of the web card. Served from
+    `GET /api/flights/{flight_id}/card.png`, reusing the same cached `FlightSnapshot` the JSON status
+    endpoint already serves; introduces no new external call or cache.
   - **SC-D3.2 (implementation note)**: Reusing the render endpoint for an auto-generated OpenGraph
     link-preview image is deferred to `docs/BACKLOG.md`, not part of this requirement.
 - **SC-D4**: The delay/status badges MUST convey their meaning (ok/warn/bad) through a non-color signal

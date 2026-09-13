@@ -365,6 +365,12 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .share-button {
   background: transparent;
   border: 1px solid var(--border);
