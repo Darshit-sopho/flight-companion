@@ -10,7 +10,10 @@ import {
 } from "./weatherIcons";
 
 interface Props {
-  label: "Now" | "Outlook";
+  /** Visible, leg-specific label so it's clear what time this reading is for at a glance, not just on
+   * hover -- e.g. "Now", "At departure", "At arrival". See StatusTimelineCard's LegColumn.
+   */
+  label: string;
   bucket: WeatherBucket | null;
   tempF: number | null;
 }
@@ -35,9 +38,11 @@ const CONDITION_LABEL: Record<WeatherBucket, string> = {
   thunderstorm: "thunderstorms",
 };
 
-/** One compact glyph (icon + temp) for the status card's per-leg weather row (SC-D2). Two of these sit
- * side by side per leg: "Now" (current airport conditions) and "Outlook" (forecast for the hour nearest
- * that leg's scheduled/estimated time) -- see StatusTimelineCard's LegColumn.
+/** One compact glyph (label + icon + temp) for the status card's per-leg weather row (SC-D2). Two of
+ * these sit side by side per leg: "Now" (current airport conditions) and a leg-specific "At departure"/
+ * "At arrival" (forecast for the hour nearest that leg's scheduled/estimated time) -- see
+ * StatusTimelineCard's LegColumn. The label is shown as visible text, not just a hover tooltip, since a
+ * bare icon+temp pair gives no clue which of the two it is.
  */
 export function WeatherGlyph({ label, bucket, tempF }: Props) {
   if (bucket === null && tempF === null) return null;
@@ -49,6 +54,7 @@ export function WeatherGlyph({ label, bucket, tempF }: Props) {
 
   return (
     <span className="weather-glyph" title={title} aria-label={title}>
+      <span className="weather-glyph__label">{label}</span>
       {Icon && <Icon />}
       {temp && <span className="weather-glyph__temp">{temp}</span>}
     </span>

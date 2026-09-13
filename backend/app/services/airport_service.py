@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.clients.aeroapi_client import AeroAPIClient, AeroAPINotFoundError
@@ -31,6 +32,15 @@ def get_airport(db: Session, aeroapi: AeroAPIClient, code: str) -> Airport | Non
         updated_at=utcnow(),
     )
     db.add(airport)
-    db.commit()
-    db.refresh(airport)
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two requests can both see no cached row for a never-before-looked-up airport and race to
+        # insert it -- e.g. the status card's plain airport-info fetch and its weather fetch (SC-D2) now
+        # resolve the same airport concurrently. The loser just re-reads what the winner wrote instead
+        # of erroring.
+        db.rollback()
+        airport = db.get(Airport, code)
+    else:
+        db.refresh(airport)
     return airport

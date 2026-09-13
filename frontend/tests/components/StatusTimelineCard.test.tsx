@@ -244,10 +244,18 @@ describe("StatusTimelineCard", () => {
       outlook: { bucket: "rain", temp_f: 55.0, at: "2026-09-12T20:00:00Z" },
     };
 
-    it("shows both Now and Outlook glyphs for a leg when weather data is provided", () => {
-      render(<StatusTimelineCard status={baseStatus} originWeather={weather} />);
-      expect(screen.getByTitle("Now: partly cloudy, 68°F")).toBeInTheDocument();
-      expect(screen.getByTitle("Outlook: rain, 55°F")).toBeInTheDocument();
+    it("shows both Now and a leg-specific 'At departure'/'At arrival' glyph, as visible text", () => {
+      render(
+        <StatusTimelineCard status={baseStatus} originWeather={weather} destinationWeather={weather} />,
+      );
+      // The label must be visible on the card, not only in a hover tooltip -- a bare icon+temp pair
+      // gives no clue which glyph is which.
+      expect(screen.getAllByText("Now").length).toBe(2);
+      expect(screen.getByText("At departure")).toBeInTheDocument();
+      expect(screen.getByText("At arrival")).toBeInTheDocument();
+      expect(screen.getAllByTitle("Now: partly cloudy, 68°F").length).toBe(2);
+      expect(screen.getByTitle("At departure: rain, 55°F")).toBeInTheDocument();
+      expect(screen.getByTitle("At arrival: rain, 55°F")).toBeInTheDocument();
     });
 
     it("omits the weather row entirely when no weather data is available for a leg", () => {
@@ -260,7 +268,7 @@ describe("StatusTimelineCard", () => {
         <StatusTimelineCard status={baseStatus} originWeather={{ ...weather, outlook: null }} />,
       );
       expect(screen.getByTitle(/^Now:/)).toBeInTheDocument();
-      expect(screen.queryByTitle(/^Outlook:/)).not.toBeInTheDocument();
+      expect(screen.queryByText("At departure")).not.toBeInTheDocument();
     });
 
     it("shows the destination leg's own weather independently of the origin's", () => {

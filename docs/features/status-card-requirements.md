@@ -124,10 +124,12 @@ approach decision not yet made, so it's deliberately a separate pass.
   - **SC-D2.1 (RESOLVED)**: A "Now" glyph shows current conditions at that airport (icon + °F), sourced
     from Open-Meteo and shown regardless of flight status — it's airport weather, not flight weather, so
     it stays useful context even for a landed/cancelled flight.
-  - **SC-D2.2 (RESOLVED)**: An "Outlook" glyph shows the forecast for the hour nearest that leg's
-    scheduled/estimated departure (origin) or arrival (destination) time. Omitted when no cached forecast
-    hour falls within ~3 hours of that target (e.g. a flight booked beyond Open-Meteo's forecast horizon)
-    rather than showing a misleadingly stale match.
+  - **SC-D2.2 (RESOLVED)**: A second glyph, visibly labeled **"At departure"** (origin leg) or **"At
+    arrival"** (destination/diverted leg) — not a vague "Outlook" — shows the forecast for the hour
+    nearest that leg's scheduled/estimated time. The label must be visible text on the card, not only a
+    hover tooltip, since a bare icon+temp pair gives no clue what it represents. Omitted when no cached
+    forecast hour falls within ~3 hours of that target (e.g. a flight booked beyond Open-Meteo's forecast
+    horizon) rather than showing a misleadingly stale match.
   - **SC-D2.3 (implementation note)**: Open-Meteo's ~30 WMO weather codes are bucketed server-side
     (`backend/app/services/wmo_weather_codes.py`) into 7 icon buckets before reaching the frontend, so the
     frontend never needs its own copy of that table.

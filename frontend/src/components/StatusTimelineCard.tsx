@@ -55,6 +55,9 @@ interface LegColumnProps {
   muted?: boolean;
   country?: string | null;
   weather?: AirportWeatherResponse | null;
+  /** Visible label for the second weather glyph -- "At departure" for the origin leg, "At arrival" for
+   * a destination leg -- so it's clear what time that forecast is for, not a vague "Outlook". */
+  weatherOutlookLabel?: string;
 }
 
 function LegColumn({
@@ -68,6 +71,7 @@ function LegColumn({
   muted,
   country,
   weather,
+  weatherOutlookLabel,
 }: LegColumnProps) {
   const location = [airport.city, country].filter(Boolean).join(", ");
   return (
@@ -103,7 +107,7 @@ function LegColumn({
               <WeatherGlyph label="Now" bucket={weather.now.bucket} tempF={weather.now.temp_f} />
               {weather.outlook && (
                 <WeatherGlyph
-                  label="Outlook"
+                  label={weatherOutlookLabel ?? "Forecast"}
                   bucket={weather.outlook.bucket}
                   tempF={weather.outlook.temp_f}
                 />
@@ -223,6 +227,7 @@ export function StatusTimelineCard({
           tz={originTz}
           country={originCountry}
           weather={originWeather}
+          weatherOutlookLabel="At departure"
         />
 
         <div className="leg-arrow" aria-hidden="true">
@@ -240,6 +245,7 @@ export function StatusTimelineCard({
           muted={isDiverted}
           country={destinationCountry}
           weather={destinationWeather}
+          weatherOutlookLabel="At arrival"
         />
 
         {isDiverted && status.diverted && (
@@ -261,6 +267,7 @@ export function StatusTimelineCard({
                 status.diverted.airport.timezone,
               )}
               weather={divertedWeather}
+              weatherOutlookLabel="At arrival"
             />
           </>
         )}
