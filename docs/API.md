@@ -117,6 +117,19 @@ Past occurrences of the same flight number/route.
 `trend` is one of `improving | worsening | stable`, computed by comparing the first and second half of the
 returned occurrence window.
 
+## `GET /api/flights/{flight_id}/card.png`
+
+Shareable "card" image for casual sharing into a chat app (docs/features/status-card-requirements.md
+#SC-D3). A from-scratch server-side rendering of the flight's key fields — ident, status, route, times,
+delay, gate/terminal, operator, duration/distance, aircraft — NOT a screenshot of the web card. Uses the
+same cached `FlightSnapshot` the JSON status endpoint serves, so it introduces no new external API call
+and no new cache.
+
+**Response `200`**: `image/png`, 1200x630 (the OpenGraph standard size, chosen so a future auto-generated
+link-preview image — see `docs/BACKLOG.md` — can reuse this endpoint without a resize).
+
+**Response `404`** — unknown `flight_id`.
+
 ## `GET /api/flights/{flight_id}/track`
 
 Latest live position, if available.

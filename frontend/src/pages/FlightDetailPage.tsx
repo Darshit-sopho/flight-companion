@@ -12,6 +12,7 @@ import {
 import { AirportInfoPanel } from "../components/AirportInfoPanel";
 import { DelayTrendChart } from "../components/DelayTrendChart";
 import { LiveFlightMap } from "../components/LiveFlightMap";
+import { ShareImageButton } from "../components/ShareImageButton";
 import { ShareLinkButton } from "../components/ShareLinkButton";
 import { StatusTimelineCard } from "../components/StatusTimelineCard";
 import { useFlightStatus } from "../hooks/useFlightStatus";
@@ -126,7 +127,10 @@ function FlightDetailContent({ flightId }: { flightId: string }) {
           loading={!destination && !!status.destination.code}
         />
       </div>
-      <ShareLinkButton />
+      <div className="share-actions">
+        <ShareLinkButton />
+        <ShareImageButton flightId={flightId} />
+      </div>
     </>
   );
 }

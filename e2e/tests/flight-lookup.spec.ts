@@ -65,4 +65,21 @@ test.describe("flight lookup workflow", () => {
 
     await expect(page.getByRole("alert")).toContainText(/No flight found/);
   });
+
+  test("share as image downloads a PNG (SC-D3)", async ({ page }) => {
+    await page.goto(`/flight/${AIRBORNE_IDENT}/${TODAY}`);
+    await expect(page.getByRole("heading", { name: new RegExp(AIRBORNE_IDENT) })).toBeVisible();
+
+    // Desktop Chromium (this test's default browser) has no Web Share API file-sharing support, so this
+    // naturally exercises the download fallback rather than navigator.share.
+    const [response, download] = await Promise.all([
+      page.waitForResponse((res) => res.url().includes("/card.png")),
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: /Share as image/ }).click(),
+    ]);
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("image/png");
+    expect(download.suggestedFilename()).toMatch(/\.png$/);
+  });
 });
