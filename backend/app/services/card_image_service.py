@@ -1,5 +1,5 @@
 """Renders a shareable "card" PNG for a flight (docs/features/status-card-requirements.md#SC-D3),
-scoped to casual share-to-chat for this pass (see docs/BACKLOG.md for the deferred OpenGraph reuse).
+scoped to casual share-to-chat for this pass (see docs/PLANNED_WORK.md for the deferred OpenGraph reuse).
 
 This is a from-scratch draw of the flight's key fields, NOT a screenshot of the web card -- it
 deliberately reuses only the underlying data (the same FlightSnapshot the JSON status endpoint already
@@ -7,7 +7,7 @@ serves), not the React/CSS rendering. No new cache: rendering from an already-fe
 single-digit milliseconds, so there's nothing worth caching for a "click a button" cold path.
 
 1200x630 is the OpenGraph standard link-preview size -- chosen now, at no extra cost, so a future
-auto-generated link-preview image (see docs/BACKLOG.md) can reuse this without a resize.
+auto-generated link-preview image (see docs/PLANNED_WORK.md) can reuse this without a resize.
 """
 
 from __future__ import annotations

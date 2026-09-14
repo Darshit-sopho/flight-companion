@@ -102,4 +102,5 @@ in a Claude Code session), then [`CONTRIBUTING.md`](CONTRIBUTING.md) for dev wor
 | [`docs/API.md`](docs/API.md) | REST endpoint reference |
 | [`docs/TESTING.md`](docs/TESTING.md) | Test strategy across unit/integration/e2e |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | MVP vs near-term vs future phases |
+| [`docs/PLANNED_WORK.md`](docs/PLANNED_WORK.md) | Unscheduled major initiatives and smaller ideas/polish |
 | [`docs/adr/`](docs/adr/) | Architecture decision records |

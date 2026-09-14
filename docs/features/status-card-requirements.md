@@ -19,7 +19,7 @@ SC-E3, SC-X1 through SC-X3, SC-D1, and SC-D4 are all **implemented and tested** 
 tests). **SC-D3** (shareable card image, server-side PNG via Pillow) is now **implemented and tested**
 too (see `backend/tests/unit/test_card_image_service.py`, `test_flights_api.py`'s card-image tests, and
 `frontend/tests/components/ShareImageButton.test.tsx`) — scoped to casual share-to-chat only; the
-OpenGraph link-preview reuse (SC-D3.2) remains deferred per `docs/BACKLOG.md`.
+OpenGraph link-preview reuse (SC-D3.2) remains deferred per `docs/PLANNED_WORK.md`.
 
 ## Phase A — Visual polish + progress indicator
 
@@ -122,7 +122,7 @@ OpenGraph link-preview reuse (SC-D3.2) remains deferred per `docs/BACKLOG.md`.
   time-remaining-in-flight) that updates between `useFlightStatus` polls, not only on each poll.
 - **SC-D2**: The card MUST show a compact/inline weather glyph per airport. A future click-to-expand into
   a detailed weather view is a candidate follow-up, not part of this requirement (tracked in
-  `docs/BACKLOG.md`).
+  `docs/PLANNED_WORK.md`).
   - **SC-D2.1 (RESOLVED)**: A "Now" glyph shows current conditions at that airport (icon + °F), sourced
     from Open-Meteo and shown regardless of flight status — it's airport weather, not flight weather, so
     it stays useful context even for a landed/cancelled flight.
@@ -143,7 +143,7 @@ OpenGraph link-preview reuse (SC-D3.2) remains deferred per `docs/BACKLOG.md`.
     `GET /api/flights/{flight_id}/card.png`, reusing the same cached `FlightSnapshot` the JSON status
     endpoint already serves; introduces no new external call or cache.
   - **SC-D3.2 (implementation note)**: Reusing the render endpoint for an auto-generated OpenGraph
-    link-preview image is deferred to `docs/BACKLOG.md`, not part of this requirement.
+    link-preview image is deferred to `docs/PLANNED_WORK.md`, not part of this requirement.
 - **SC-D4**: The delay/status badges MUST convey their meaning (ok/warn/bad) through a non-color signal
   in addition to color (icon, shape, or text), so the distinction isn't color-only.
 
